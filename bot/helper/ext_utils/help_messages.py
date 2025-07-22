@@ -12,12 +12,12 @@ Set custom caption with <b>HTML</b> style
 Example: <code>{escape("<b>By:</b> <a href='https://t.me/TG_DC_BoTs'>DCBOTS</a>")}</code>
 Result: <b>By:</b> <a href='https://t.me/TG_DC_BoTs'>DCBOTS</a>\n
 Available Syntax:
-1. <code>{filename}</code>
-2. <code>{duration}</code>
-3. <code>{quality}</code>
-4. <code>{audios}</code> (all language)
-5. <code>{subtitles}</code> (all language)
-6. <code>{md5_hash}</code>\n
+1. <code>{{filename}}</code>
+2. <code>{{duration}}</code>
+3. <code>{{quality}}</code>
+4. <code>{{audios}}</code> (all language)
+5. <code>{{subtitles}}</code> (all language)
+6. <code>{{md5_hash}}</code>\n
 <i>*Be careful when you use html tag for caption\n
 Timeout: 60s.</i>
 '''
