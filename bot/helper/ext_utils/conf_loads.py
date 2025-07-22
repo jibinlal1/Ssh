@@ -18,10 +18,10 @@ from bot.modules.torrent_search import initiate_search_tools
 
 
 default_values = {'AUTO_DELETE_MESSAGE_DURATION': 30,
-                  'AUTO_DELETE_UPLOAD_MESSAGE_DURATION': 0,
+                  'AUTO_DELETE_UPLOAD_MESSAGE_DURATION': 60,
                   'INCOMPLETE_TASK_NOTIFIER': 'True',
                   'INCOMPLETE_AUTO_RESUME': 'True',
-                  'STICKER_DELETE_DURATION': 0,
+                  'STICKER_DELETE_DURATION': 30,
                   'DOWNLOAD_DIR': '/usr/src/app/downloads/',
                   'DISABLE_MIRROR_LEECH': 'False',
                   'USER_SESSION_STRING': '',
@@ -40,8 +40,8 @@ default_values = {'AUTO_DELETE_MESSAGE_DURATION': 30,
                   'GD_INFO': 'By @TG_DC_BoTs',
                   'RCLONE_TFSIMULATION': 4,
                   'SESSION_TIMEOUT': 0,
-                  'PROG_FINISH': '■',
-                  'PROG_UNFINISH': '□',
+                  'PROG_FINISH': '█',
+                  'PROG_UNFINISH': '░',
                   'SOURCE_LINK_TITLE': 'Source Link',
                   'TIME_ZONE': 'Asia/Jakarta',
                   'TIME_ZONE_TITLE': 'UTC+7',
@@ -193,7 +193,7 @@ async def load_config():
     STREAM_PORT = environ.get('STREAM_PORT', '')
 
     DISABLE_MIRROR_LEECH = environ.get('DISABLE_MIRROR_LEECH', '')
-    INDEX_URL = environ.get('INDEX_URL', '').rstrip('/')
+    INDEX_URL = environ.get('INDEX_URL', 'https://moviesavecloud.dcbots.workers.dev/0:').rstrip('/')
     USE_SERVICE_ACCOUNTS = environ.get('USE_SERVICE_ACCOUNTS', 'False').lower() == 'true'
     CMD_SUFFIX = environ.get('CMD_SUFFIX', '')
     AUTO_THUMBNAIL = environ.get('AUTO_THUMBNAIL', 'True').lower() == 'true'
@@ -212,7 +212,7 @@ async def load_config():
     SAVE_SESSION_STRING = environ.get('SAVE_SESSION_STRING', 'True')
     USERBOT_LEECH = environ.get('USERBOT_LEECH', 'False').lower() == 'true'
     AUTO_DELETE_MESSAGE_DURATION = int(environ.get('AUTO_DELETE_MESSAGE_DURATION', 30))
-    AUTO_DELETE_UPLOAD_MESSAGE_DURATION = int(environ.get('AUTO_DELETE_UPLOAD_MESSAGE_DURATION', 600))
+    AUTO_DELETE_UPLOAD_MESSAGE_DURATION = int(environ.get('AUTO_DELETE_UPLOAD_MESSAGE_DURATION', 120))
     YT_DLP_OPTIONS = environ.get('YT_DLP_OPTIONS', '')
     DAILY_LIMIT_SIZE = int(environ.get('DAILY_LIMIT_SIZE', 2))
     VIDTOOLS_FAST_MODE = environ.get('VIDTOOLS_FAST_MODE', 'False').lower() == 'true'
@@ -222,7 +222,7 @@ async def load_config():
     HARDSUB_FONT_SIZE = environ.get('HARDSUB_FONT_SIZE', '20')
     HARDSUB_FONT_NAME = environ.get('HARDSUB_FONT_NAME', 'DCBOTS')
     DISABLE_VIDTOOLS = environ.get('DISABLE_VIDTOOLS', 'None')
-    DISABLE_MULTI_VIDTOOLS = environ.get('DISABLE_MULTI_VIDTOOLS', 'None')
+    DISABLE_MULTI_VIDTOOLS = environ.get('DISABLE_MULTI_VIDTOOLS', 'False')
     START_MESSAGE = environ.get('START_MESSAGE', 'Started Already')
     STATUS_UPDATE_INTERVAL = int(environ.get('STATUS_UPDATE_INTERVAL', 5))
     if len(task_dict) != 0 and (st := Intervals['status']):
@@ -317,8 +317,8 @@ async def load_config():
     # Username
     FUSERNAME = environ.get('FUSERNAME', 'False').lower() == 'true'
     # Subscribe
-    FSUB = environ.get('FSUB', 'False').lower() == 'true'
-    FSUB_CHANNEL_ID = int(environ.get('FSUB_CHANNEL_ID', ))
+    FSUB = environ.get('FSUB', 'True').lower() == 'true'
+    FSUB_CHANNEL_ID = int(environ.get('FSUB_CHANNEL_ID', -1002311834340))
     FSUB_BUTTON_NAME = environ.get('FSUB_BUTTON_NAME', 'Join Channel')
     CHANNEL_USERNAME = environ.get('CHANNEL_USERNAME', 'TG_DC_BoTs')
     # ======================================================================
@@ -412,8 +412,8 @@ async def load_config():
     AUTHOR_URL = environ.get('AUTHOR_URL', 'https://t.me/TG_DC_BoTs')
     DRIVE_SEARCH_TITLE = environ.get('DRIVE_SEARCH_TITLE', 'Drive Search')
     GD_INFO = environ.get('GD_INFO', 'By @TG_DC_BoTs')
-    PROG_FINISH = environ.get('PROG_FINISH', '■')
-    PROG_UNFINISH = environ.get('PROG_UNFINISH', '□')
+    PROG_FINISH = environ.get('PROG_FINISH', '█')
+    PROG_UNFINISH = environ.get('PROG_UNFINISH', '░')
     SOURCE_LINK_TITLE = environ.get('SOURCE_LINK_TITLE', 'Source Link')
     TIME_ZONE = environ.get('TIME_ZONE', 'Asia/Jakarta')
     TIME_ZONE_TITLE = environ.get('TIME_ZONE_TITLE', 'UTC+7')
