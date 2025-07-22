@@ -95,7 +95,7 @@ async def get_user_settings(from_user, data: str, uset_data: str):
         buttons.button_data(buttonkey, f'userset {user_id} setdata yt_opt')
 
         capmode = user_dict.get('caption_style', 'bold')
-        buttons.button_data(' ✓ Leech Caption' if user_dict.get('captions') else 'Caption', f'userset {user_id} capmode')
+        buttons.button_data(' ✓ Leech Caption' if user_dict.get('captions') else 'Leech Caption', f'userset {user_id} capmode')
 
         buttons.button_data('Zip Mode', f'userset {user_id} zipmode')
 
@@ -135,13 +135,13 @@ async def get_user_settings(from_user, data: str, uset_data: str):
                 f'<b>SS Mode: </b>{sendss}\n'
                 f'<b>RClone: </b>{rccmsg}\n'
                 f'<b>Caption: </b>{capmode.upper()}</b>\n'
-                f'<b>Prename: </b>{premsg}\n'
-                f'<b>Sufname: </b>{sufmsg}\n'
+                f'<b>Leech Prefix: </b>{premsg}\n'
+                f'<b>Leech Suffix: </b>{sufmsg}\n'
                 f'<b>Remname: </b>{rmmsg}\n'
                 f'<b>Metadata: </b>{metadata}\n'
-                f'<b>UserDump/Tds: {dumpch}\n'
-                f'<b>Custom GDrive: </b>{gdxmsg}\n'
-                f'<b>Custom Caption: </b>{custom_cap}\n'
+                f'<b>Dump ID: {dumpch}\n'
+                f'<b>GDrive Tools: </b>{gdxmsg}\n'
+                f'<b>Leech Caption: </b>{custom_cap}\n'
                 f'<b>Session String: </b>{sesmsg}\n'
                 f'<b>Default Upload: </b>{du}\n'
                 f'<b>YT-DLP Options: {yto}\n')
