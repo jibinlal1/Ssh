@@ -1,0 +1,48 @@
+# By Hunter Mirror
+name: Deploy to Heroku
+
+on:
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout deploy branch
+        uses: actions/checkout@v2
+
+      - name: Delete unnecessary directories and files
+        run: |
+          # Directories to delete
+          for dir in bot qBittorrent web; do
+            if [ -d "./$dir" ]; then
+              echo "Deleting directory: $dir"
+              rm -rf ./$dir
+            else
+              echo "Directory not found: $dir"
+            fi
+          done
+
+          # Delete aria.sh if it exists
+          if [ -f "./aria.sh" ]; then
+            echo "Deleting file: aria.sh"
+            rm -f ./aria.sh
+          else
+            echo "File not found: aria.sh"
+          fi
+
+      - name: Install Heroku CLI
+        run: |
+          curl https://cli-assets.heroku.com/install.sh | sh         
+
+      - name: Deploy to Heroku
+        uses: akhileshns/heroku-deploy@v3.13.15
+        with:
+          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+          heroku_app_name: ${{secrets.HEROKU_APP_NAME}}
+          heroku_email: ${{secrets.HEROKU_EMAIL}}
+          team: ${{ secrets.HEROKU_TEAM_NAME != '' && format('{0}', secrets.HEROKU_TEAM_NAME) || '' }}
+          usedocker: true
+          docker_heroku_process_type: web
+          stack: "container"
+          region: "eu"
+        
