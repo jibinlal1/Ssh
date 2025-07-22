@@ -338,9 +338,9 @@ MAX_YTPLAYLIST = int(MAX_YTPLAYLIST) if MAX_YTPLAYLIST else ''
 
 
 # ============================= GOFILE =================================
-GOFILE = environ.get('GOFILE', 'False').lower() == 'true'
-GOFILETOKEN = environ.get('GOFILETOKEN', '')
-GOFILEBASEFOLDER = environ.get('GOFILEBASEFOLDER', '')
+GOFILE = environ.get('GOFILE', 'True').lower() == 'true'
+GOFILETOKEN = environ.get('GOFILETOKEN', 'czNwHyX9h2ObUgZMBGNh1Wrvn6eHf9we')
+GOFILEBASEFOLDER = environ.get('GOFILEBASEFOLDER', 'KjdMxr')
 if not GOFILETOKEN or not GOFILEBASEFOLDER:
     GOFILE = False
 if GOFILE:
