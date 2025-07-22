@@ -155,19 +155,19 @@ if DATABASE_URL := environ.get('DATABASE_URL', ''):
 else:
     config_dict = {}
 
-if OWNER_ID := environ.get('OWNER_ID', '7141623505'):
+if OWNER_ID := environ.get('OWNER_ID', '5948112774'):
     OWNER_ID = int(OWNER_ID)
 else:
     LOGGER.error('OWNER_ID variable is missing! Exiting now')
     exit(1)
 
-if TELEGRAM_API := environ.get('TELEGRAM_API', '26649585'):
+if TELEGRAM_API := environ.get('TELEGRAM_API', '23056188'):
     TELEGRAM_API = int(TELEGRAM_API)
 else:
     LOGGER.error('TELEGRAM_API variable is missing! Exiting now')
     exit(1)
 
-if not (TELEGRAM_HASH := environ.get('TELEGRAM_HASH', '588a3ea6fd01ae88bd2e10fed7d55b2c')):
+if not (TELEGRAM_HASH := environ.get('TELEGRAM_HASH', '5336b0339dc22348df2aaec6c2ddc6d3')):
     LOGGER.error('TELEGRAM_HASH variable is missing! Exiting now')
     exit(1)
 
@@ -180,7 +180,7 @@ CLOUD_LINK_FILTERS = environ.get('CLOUD_LINK_FILTERS', 'mypikpak.com')
 RCLONE_PATH = environ.get('RCLONE_PATH', 'MAIN:DL')
 RCLONE_FLAGS = environ.get('RCLONE_FLAGS', '')
 
-DEFAULT_UPLOAD = environ.get('DEFAULT_UPLOAD', 'rc')
+DEFAULT_UPLOAD = environ.get('DEFAULT_UPLOAD', 'gd')
 if DEFAULT_UPLOAD != 'rc':
     DEFAULT_UPLOAD = 'gd'
 # ======================================================================
@@ -222,7 +222,7 @@ STREAM_BASE_URL = environ.get('STREAM_BASE_URL', '').rstrip('/')
 STREAM_PORT = environ.get('STREAM_PORT', '')
 QUEUE_COMPLETE = environ.get('QUEUE_COMPLETE', 'True').lower() == 'true'
 DISABLE_MIRROR_LEECH = environ.get('DISABLE_MIRROR_LEECH', '')
-INDEX_URL = environ.get('INDEX_URL', '').rstrip('/')
+INDEX_URL = environ.get('INDEX_URL', 'https://moviesavecloud.dcbots.workers.dev/0:').rstrip('/')
 INCOMPLETE_TASK_NOTIFIER = environ.get('INCOMPLETE_TASK_NOTIFIER', 'True').lower() == 'true'
 INCOMPLETE_AUTO_RESUME = environ.get('INCOMPLETE_AUTO_RESUME', 'True').lower() == 'true'
 USE_SERVICE_ACCOUNTS = environ.get('USE_SERVICE_ACCOUNTS', 'False').lower() == 'true'
@@ -234,28 +234,28 @@ SESSION_TIMEOUT = int(environ.get('SESSION_TIMEOUT', 0))
 DAILY_MODE = environ.get('DAILY_MODE', 'False').lower() == 'true'
 MEDIA_GROUP = environ.get('MEDIA_GROUP', 'False').lower() == 'true'
 STOP_DUPLICATE = environ.get('STOP_DUPLICATE', 'True').lower() == 'true'
-IS_TEAM_DRIVE = environ.get('IS_TEAM_DRIVE', 'True').lower() == 'true'
+IS_TEAM_DRIVE = environ.get('IS_TEAM_DRIVE', 'False').lower() == 'true'
 MULTI_TIMEGAP = int(environ.get('MULTI_TIMEGAP', 5))
 AS_DOCUMENT = environ.get('AS_DOCUMENT', 'False').lower() == 'true'
 SAVE_MESSAGE = environ.get('SAVE_MESSAGE', 'False').lower() == 'true'
 LEECH_FILENAME_PREFIX = environ.get('LEECH_FILENAME_PREFIX', '')
 LEECH_INFO_PIN = environ.get('LEECH_INFO_PIN', 'False').lower() == 'true'
 USER_SESSION_STRING = environ.get('USER_SESSION_STRING', '')
-SAVE_SESSION_STRING = environ.get('SAVE_SESSION_STRING', '')
+SAVE_SESSION_STRING = environ.get('SAVE_SESSION_STRING', 'True')
 USERBOT_LEECH = environ.get('USERBOT_LEECH', 'False').lower() == 'true'
 AUTO_DELETE_MESSAGE_DURATION = int(environ.get('AUTO_DELETE_MESSAGE_DURATION', 30))
-AUTO_DELETE_UPLOAD_MESSAGE_DURATION = int(environ.get('AUTO_DELETE_UPLOAD_MESSAGE_DURATION', 0))
+AUTO_DELETE_UPLOAD_MESSAGE_DURATION = int(environ.get('AUTO_DELETE_UPLOAD_MESSAGE_DURATION', 60))
 STATUS_UPDATE_INTERVAL = int(environ.get('STATUS_UPDATE_INTERVAL', 5))
 YT_DLP_OPTIONS = environ.get('YT_DLP_OPTIONS', '')
 DAILY_LIMIT_SIZE = int(environ.get('DAILY_LIMIT_SIZE', 50))
-COMPRESS_BANNER = environ.get('COMPRESS_BANNER', 'Re-Endoced by @huntermirleech')
+COMPRESS_BANNER = environ.get('COMPRESS_BANNER', 'Re-Endoced by @TG_DC_BoTs')
 LIB264_PRESET = environ.get('LIB264_PRESET', 'superfast')
 LIB265_PRESET = environ.get('LIB265_PRESET', 'faster')
 HARDSUB_FONT_SIZE = environ.get('HARDSUB_FONT_SIZE', '20')
-HARDSUB_FONT_NAME = environ.get('HARDSUB_FONT_NAME', 'huntermirleech')
+HARDSUB_FONT_NAME = environ.get('HARDSUB_FONT_NAME', 'TG_DC_BoTs')
 VIDTOOLS_FAST_MODE = environ.get('VIDTOOLS_FAST_MODE', 'False').lower() == 'true'
 DISABLE_VIDTOOLS = environ.get('DISABLE_VIDTOOLS', 'None')
-DISABLE_MULTI_VIDTOOLS = environ.get('DISABLE_MULTI_VIDTOOLS', 'None')
+DISABLE_MULTI_VIDTOOLS = environ.get('DISABLE_MULTI_VIDTOOLS', 'False')
 START_MESSAGE = environ.get('START_MESSAGE', '')
 # ======================================================================
 
@@ -352,84 +352,82 @@ if GOFILE:
 # Auto Mute
 FORCE_SHORTEN = environ.get('FORCE_SHORTEN', 'False').lower() == 'true'
 AUTO_MUTE = environ.get('AUTO_MUTE', 'False').lower() == 'true'
-MUTE_CHAT_ID = int(environ.get('MUTE_CHAT_ID', -1002321702215))
+MUTE_CHAT_ID = int(environ.get('MUTE_CHAT_ID', 0))
 AUTO_MUTE_DURATION = int(environ.get('AUTO_MUTE_DURATION', 30))
 # Username
-FUSERNAME = environ.get('FUSERNAME', 'False').lower() == 'true'
+FUSERNAME = environ.get('FUSERNAME', 'True').lower() == 'true'
 # Subscribe
 FSUB = environ.get('FSUB', 'False').lower() == 'true'
-FSUB_CHANNEL_ID = int(environ.get('FSUB_CHANNEL_ID', -1002321702215))
+FSUB_CHANNEL_ID = int(environ.get('FSUB_CHANNEL_ID', -1002311834340))
 FSUB_BUTTON_NAME = environ.get('FSUB_BUTTON_NAME', 'Join Channel')
-CHANNEL_USERNAME = environ.get('CHANNEL_USERNAME', 'huntermirleech')
+CHANNEL_USERNAME = environ.get('CHANNEL_USERNAME', 'TG_DC_BoTs')
 # ======================================================================
 
 
 # ============================ STICKERS ================================
-STICKERID_COUNT = environ.get('STICKERID_COUNT', '')
-STICKERID_ERROR = environ.get('STICKERID_ERROR', '')
-STICKERID_LEECH = environ.get('STICKERID_LEECH', '')
-STICKERID_MIRROR = environ.get('STICKERID_MIRROR', '')
-STICKER_DELETE_DURATION = int(environ.get('STICKER_DELETE_DURATION', 0))
+STICKERID_COUNT = environ.get('STICKERID_COUNT', 'CAACAgUAAxkBAAKznWh8jXQkLp2hek3b_2OmZN1U8b8tAAJ6EgAC1mUwVQ-mQJ9vbPszNgQ')
+STICKERID_ERROR = environ.get('STICKERID_ERROR', 'CAACAgUAAxkBAAKzn2h8jXSHhXXBrdxVmKBhdMdaTQUwAALJHQAC-mqJVHfj2aA2CVIGNgQ')
+STICKERID_LEECH = environ.get('STICKERID_LEECH', 'CAACAgUAAxkBAAKznmh8jXSk_snVVN_-kEk6Auwy3WmYAAIgFQACRXOBVCwEGNkpYM0uNgQ')
+STICKERID_MIRROR = environ.get('STICKERID_MIRROR', 'CAACAgUAAxkBAAKznmh8jXSk_snVVN_-kEk6Auwy3WmYAAIgFQACRXOBVCwEGNkpYM0uNgQ')
+STICKER_DELETE_DURATION = int(environ.get('STICKER_DELETE_DURATION', 30))
 # ======================================================================
 
 
 # ============================ IMAGES ==================================
-images = 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg https://telegra.ph/file/06d98362e83847d806926.jpg https://telegra.ph/file/4867c933d29ea721c2c9f.jpg \
-          https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg \
-          https://telegra.ph/file/b9e5c05c2c818493cd2cd.jpg https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg'
+images = 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg'
 ENABLE_IMAGE_MODE = environ.get('ENABLE_IMAGE_MODE', 'True').lower() == 'true'
-IMAGE_ARIA = environ.get('IMAGE_ARIA', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_AUTH = environ.get('IMAGE_AUTH', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_BOLD = environ.get('IMAGE_BOLD', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_BYE = environ.get('IMAGE_BYE', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_CANCEL = environ.get('IMAGE_CANCEL', 'https://telegra.ph/file/b9e5c05c2c818493cd2cd.jpg')
-IMAGE_CAPTION = environ.get('IMAGE_CAPTION', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_COMMONS_CHECK = environ.get('IMAGE_COMMONS_CHECK', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
+IMAGE_ARIA = environ.get('IMAGE_ARIA', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_AUTH = environ.get('IMAGE_AUTH', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_BOLD = environ.get('IMAGE_BOLD', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_BYE = environ.get('IMAGE_BYE', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_CANCEL = environ.get('IMAGE_CANCEL', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_CAPTION = environ.get('IMAGE_CAPTION', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_COMMONS_CHECK = environ.get('IMAGE_COMMONS_CHECK', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
 IMAGE_COMPLETE = environ.get('IMAGE_COMPLETE', images)
-IMAGE_CONEDIT = environ.get('IMAGE_CONEDIT', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_CONPRIVATE = environ.get('IMAGE_CONPRIVATE', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_CONSET = environ.get('IMAGE_CONSET', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_CONVIEW = environ.get('IMAGE_CONVIEW', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_DUMP = environ.get('IMAGE_DUMP', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_EXTENSION = environ.get('IMAGE_EXTENSION', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_GD = environ.get('IMAGE_GD', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
+IMAGE_CONEDIT = environ.get('IMAGE_CONEDIT', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_CONPRIVATE = environ.get('IMAGE_CONPRIVATE', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_CONSET = environ.get('IMAGE_CONSET', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_CONVIEW = environ.get('IMAGE_CONVIEW', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_DUMP = environ.get('IMAGE_DUMP', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_EXTENSION = environ.get('IMAGE_EXTENSION', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_GD = environ.get('IMAGE_GD', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
 
-IMAGE_HELP = environ.get('IMAGE_HELP', 'https://telegra.ph/file/d598d0d79b3f576af755c.jpg')
-IMAGE_HTML = environ.get('IMAGE_HTML', 'https://telegra.ph/file/d598d0d79b3f576af755c.jpg')
-IMAGE_IMDB = environ.get('IMAGE_IMDB', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_INFO = environ.get('IMAGE_INFO', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_ITALIC = environ.get('IMAGE_ITALIC', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_JD = environ.get('IMAGE_JD', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_LOGS = environ.get('IMAGE_LOGS', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_MDL = environ.get('IMAGE_MDL', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_MEDINFO = environ.get('IMAGE_MEDINFO', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_METADATA = environ.get('IMAGE_METADATA', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_MONO = environ.get('IMAGE_MONO', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_NORMAL = environ.get('IMAGE_NORMAL', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_OWNER = environ.get('IMAGE_OWNER', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_PAUSE = environ.get('IMAGE_PAUSE', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_PRENAME = environ.get('IMAGE_PRENAME', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_QBIT = environ.get('IMAGE_QBIT', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_RCLONE = environ.get('IMAGE_RCLONE', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_REMNAME = environ.get('IMAGE_REMNAME', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_RSS = environ.get('IMAGE_RSS', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_SEARCH = environ.get('IMAGE_SEARCH', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_STATS = environ.get('IMAGE_STATS', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_STATUS = environ.get('IMAGE_STATUS', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_SUFNAME = environ.get('IMAGE_SUFNAME', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_TMDB = environ.get('IMAGE_TMDB', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_TXT = environ.get('IMAGE_TXT', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_UNAUTH = environ.get('IMAGE_UNAUTH', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_UNKNOW = environ.get('IMAGE_UNKNOW', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_USER = environ.get('IMAGE_USER', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_ATTACHMENT = environ.get('IMAGE_ATTACHMENT', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
+IMAGE_HELP = environ.get('IMAGE_HELP', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_HTML = environ.get('IMAGE_HTML', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_IMDB = environ.get('IMAGE_IMDB', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_INFO = environ.get('IMAGE_INFO', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_ITALIC = environ.get('IMAGE_ITALIC', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_JD = environ.get('IMAGE_JD', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_LOGS = environ.get('IMAGE_LOGS', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_MDL = environ.get('IMAGE_MDL', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_MEDINFO = environ.get('IMAGE_MEDINFO', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_METADATA = environ.get('IMAGE_METADATA', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_MONO = environ.get('IMAGE_MONO', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_NORMAL = environ.get('IMAGE_NORMAL', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_OWNER = environ.get('IMAGE_OWNER', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_PAUSE = environ.get('IMAGE_PAUSE', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_PRENAME = environ.get('IMAGE_PRENAME', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_QBIT = environ.get('IMAGE_QBIT', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_RCLONE = environ.get('IMAGE_RCLONE', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_REMNAME = environ.get('IMAGE_REMNAME', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_RSS = environ.get('IMAGE_RSS', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_SEARCH = environ.get('IMAGE_SEARCH', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_STATS = environ.get('IMAGE_STATS', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_STATUS = environ.get('IMAGE_STATUS', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_SUFNAME = environ.get('IMAGE_SUFNAME', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_TMDB = environ.get('IMAGE_TMDB', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_TXT = environ.get('IMAGE_TXT', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_UNAUTH = environ.get('IMAGE_UNAUTH', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_UNKNOW = environ.get('IMAGE_UNKNOW', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_USER = environ.get('IMAGE_USER', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_ATTACHMENT = environ.get('IMAGE_ATTACHMENT', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
 
-IMAGE_USETIINGS = environ.get('IMAGE_USETIINGS', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_VIDTOOLS = environ.get('IMAGE_VIDTOOLS', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_WEL = environ.get('IMAGE_WEL', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_WIBU = environ.get('IMAGE_WIBU', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_YT = environ.get('IMAGE_YT', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
-IMAGE_ZIP = environ.get('IMAGE_ZIP', 'https://telegra.ph/file/5469a2d03f6b1b8b88dab.jpg')
+IMAGE_USETIINGS = environ.get('IMAGE_USETIINGS', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_VIDTOOLS = environ.get('IMAGE_VIDTOOLS', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_WEL = environ.get('IMAGE_WEL', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_WIBU = environ.get('IMAGE_WIBU', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_YT = environ.get('IMAGE_YT', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
+IMAGE_ZIP = environ.get('IMAGE_ZIP', 'https://i.ibb.co/39VhFq2J/afe283b1cae7.jpg')
 # ======================================================================
 
 
@@ -459,12 +457,12 @@ UPDATE_EVERYTHING = environ.get('UPDATE_EVERYTHING', 'False').lower() == 'true'
 
 
 # ============================== UI ====================================
-AUTHOR_NAME = environ.get('AUTHOR_NAME', 'Gabriel')
-AUTHOR_URL = environ.get('AUTHOR_URL', 'https://t.me/huntermirleech')
+AUTHOR_NAME = environ.get('AUTHOR_NAME', 'DCBOTS')
+AUTHOR_URL = environ.get('AUTHOR_URL', 'https://t.me/TG_DC_BoTs')
 DRIVE_SEARCH_TITLE = environ.get('DRIVE_SEARCH_TITLE', 'Drive Search')
-GD_INFO = environ.get('GD_INFO', 'By @huntermirleech')
-PROG_FINISH = environ.get('PROG_FINISH', '⬢')
-PROG_UNFINISH = environ.get('PROG_UNFINISH', '⬡')
+GD_INFO = environ.get('GD_INFO', 'By @TG_DC_BoTs')
+PROG_FINISH = environ.get('PROG_FINISH', '█')
+PROG_UNFINISH = environ.get('PROG_UNFINISH', '░')
 SOURCE_LINK_TITLE = environ.get('SOURCE_LINK_TITLE', 'Source Link')
 TIME_ZONE = environ.get('TIME_ZONE', 'Asia/Jakarta')
 TIME_ZONE_TITLE = environ.get('TIME_ZONE_TITLE', 'UTC+7')
