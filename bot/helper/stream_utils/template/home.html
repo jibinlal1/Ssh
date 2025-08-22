@@ -3,7 +3,7 @@
         <meta charset="UTF-8" />
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Random Mirror Area</title>
+        <title>DC Bots</title>
         <link rel="icon" href="" type="image/jpg">
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -15,72 +15,89 @@
         <link href="//cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@4/dark.css" rel="stylesheet">
         <script src="//cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
         <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: "Ubuntu", sans-serif;
-            list-style: none;
-            text-decoration: none;
-            color: white;
-        }
-        body {
-            background-color: #0d1117;
-        }
-        header {
-            margin: 3vh 1vw;
-            padding: 0.5rem 1rem 0.5rem 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: #161b22;
-            border-radius: 30px;
-            background-color: #161b22;
-            border: 2px solid rgba(255, 255, 255, 0.11);
-        }
-        header:hover, section:hover {
-            box-shadow: 0px 0px 15px black;
-        }
-        .brand {
-            display: flex;
-            align-items: center;
-        }
-        img {
-            width: 2.5rem;
-            height: 2.5rem;
-            border: 2px solid black;
-            border-radius: 50%;
-        }
-        .name {
-            color: white;
-            margin-left: 1vw;
-            font-size: 1.5rem;
-        }
-        .social a {
-            font-size: 1.5rem;
-            color: white;
-            padding-left: 1vw;
-        }
-        .social a:hover, .brand:hover {
-            filter: invert(0.3);
-        }
+            /* --- Glow Theme Additions --- */
+            :root {
+                --glow-cyan: #00e1ff;
+                --bg-dark: #0d1117;
+                --bg-light: #161b22;
+            }
+
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                font-family: "Ubuntu", sans-serif;
+                list-style: none;
+                text-decoration: none;
+            }
+            body {
+                background-color: var(--bg-dark);
+                color: white;
+            }
+            header {
+                margin: 3vh 1vw;
+                padding: 0.5rem 1rem 0.5rem 1rem;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                border-radius: 30px;
+                background-color: var(--bg-light);
+                /* --- Glow Effect --- */
+                border: 2px solid var(--glow-cyan);
+                box-shadow: 0 0 10px var(--glow-cyan);
+                transition: box-shadow 0.3s ease-in-out;
+            }
+            header:hover {
+                 /* --- Intensify Glow on Hover --- */
+                box-shadow: 0 0 20px var(--glow-cyan), 0 0 25px var(--glow-cyan);
+            }
+            .brand {
+                display: flex;
+                align-items: center;
+            }
+            img {
+                width: 2.5rem;
+                height: 2.5rem;
+                border-radius: 50%;
+                /* --- Glow Effect --- */
+                border: 2px solid var(--glow-cyan);
+                box-shadow: 0 0 8px var(--glow-cyan);
+            }
+            .name {
+                margin-left: 1vw;
+                font-size: 1.5rem;
+                /* --- Glow Effect --- */
+                color: var(--glow-cyan);
+                text-shadow: 0 0 5px var(--glow-cyan), 0 0 8px var(--glow-cyan);
+            }
+            .social a {
+                font-size: 1.5rem;
+                padding-left: 1vw;
+            }
+            .social a i {
+                color: var(--glow-cyan);
+                text-shadow: 0 0 5px var(--glow-cyan);
+                transition: all 0.3s ease-in-out;
+            }
+            .social a:hover i {
+                color: #fff;
+                text-shadow: 0 0 10px var(--glow-cyan), 0 0 15px var(--glow-cyan);
+            }
         </style>
 </head>
 
 <body>
-    <!--© Designed and coded by @bipuldey19-Telegram-->
     <header>
         <div class="brand">
             <img src="" alt="logo" />
         </div>
-        <h2 class="name">Mirror Hunter</h2>
+        <h2 class="name">DC Mirror</h2>
         <div class="social">
-            <a href="https://t.me/huntermirleech"><i class="fab fa-github"></i></a>
-            <a href="https://t.me/huntermirleech"><i class="fab fa-telegram"></i></a>
+            <a href="https://t.me/TG_DC_BoTs"><i class="fab fa-github"></i></a>
+            <a href="https://t.me/TG_DC_BoTs"><i class="fab fa-telegram"></i></a>
         </div>
     </header>
-    <!-- Print -->
-</body>
+    </body>
 
 <footer style="height: 30%;">
     <iframe data-aa="1856195"
