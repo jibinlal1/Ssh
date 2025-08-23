@@ -10,7 +10,7 @@ from urllib3 import disable_warnings
 from bot import config_dict, LOGGER, SHORTENERES, SHORTENER_APIS
 from bot.helper.ext_utils.bot_utils import is_premium_user
 
-def generate_alias(prefix="DCBOTS______fixing______", length=8):
+def generate_alias(prefix="DCBOTS_________", length=5):
     chars = string.ascii_letters + string.digits
     suffix = ''.join(random.choices(chars, k=length))
     return prefix + suffix
