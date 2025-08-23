@@ -60,7 +60,7 @@ def short_url(longurl, user_id=None, attempt=0):
             sleep(1)
 
     # If all API shorteners fail, fallback to your custom Base64 redirect pattern URL
-    base_redirect_url = config_dict.get('SHORTENER_BASE_URL', 'https://www.atozcartoonist.com/redirect/')
+    base_redirect_url = config_dict.get('SHORTENER_BASE_URL', 'https://tamilmv.dcbots.workers.dev/redirect/')
     encoded_url = encode_url_b64(longurl)
     redirect_url = f"{base_redirect_url}?url={encoded_url}"
     return redirect_url
