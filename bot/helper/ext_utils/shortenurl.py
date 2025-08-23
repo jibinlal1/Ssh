@@ -11,7 +11,7 @@ from bot.helper.ext_utils.bot_utils import is_premium_user
 
 def validate_custom_alias(alias):
     # Validate alias with prefix DCBOTS______ followed by alphanumeric/underscore/dash
-    pattern = r'^DCBOTS______[a-zA-Z0-9_-]+$'
+    pattern = r'^DCBOTS________[a-zA-Z0-9_-]+$'
     if alias and re.match(pattern, alias) and len(alias) <= 30:
         return True
     return False
