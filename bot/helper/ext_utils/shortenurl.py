@@ -1,4 +1,4 @@
-from base64 import b64encode
+from base64 import urlsafe_b64encode
 from cloudscraper import create_scraper
 from random import choice, random, randrange
 from time import sleep
@@ -9,6 +9,14 @@ from bot import config_dict, LOGGER, SHORTENERES, SHORTENER_APIS
 from bot.helper.ext_utils.bot_utils import is_premium_user
 
 
+def encode_url_b64(longurl):
+    """
+    Encodes the long URL into a URL-safe Base64 string without padding.
+    """
+    b64_bytes = urlsafe_b64encode(longurl.encode('utf-8'))
+    return b64_bytes.decode('utf-8').rstrip('=')
+
+
 def short_url(longurl, user_id=None, attempt=0):
     def shorte_st():
         headers = {'public-api-token': _shortener_api}
@@ -16,7 +24,7 @@ def short_url(longurl, user_id=None, attempt=0):
         return cget('PUT', 'https://api.shorte.st/v1/data/url', headers=headers, data=data).json()['shortenedUrl']
 
     def linkvertise():
-        url = quote(b64encode(longurl.encode('utf-8')))
+        url = quote(urlsafe_b64encode(longurl.encode('utf-8')))
         linkvertise_urls = [f'https://link-to.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}',
                             f'https://up-to-down.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}',
                             f'https://direct-link.net/{_shortener_api}/{random() * 1000}/dynamic?r={url}',
@@ -29,6 +37,7 @@ def short_url(longurl, user_id=None, attempt=0):
 
     shortener_functions = {'shorte.st': shorte_st, 'linkvertise': linkvertise}
 
+    # If no shorteners configured or premium user/owner with no force_short, return original
     if (((not SHORTENERES and not SHORTENER_APIS) or (config_dict['PREMIUM_MODE'] and user_id and is_premium_user(user_id)) or
          user_id == config_dict['OWNER_ID']) and not config_dict['FORCE_SHORTEN']):
         return longurl
@@ -40,11 +49,18 @@ def short_url(longurl, user_id=None, attempt=0):
         cget = create_scraper().request
         disable_warnings()
         try:
+            # Try registered shorteners
             for key in shortener_functions:
                 if key in _shortener:
                     return shortener_functions[key]()
+            # Default shortener if not matched
             return default_shortener()
         except Exception as e:
             LOGGER.error(e)
             sleep(1)
-    return longurl
+
+    # If all API shorteners fail, fallback to your custom Base64 redirect pattern URL
+    base_redirect_url = config_dict.get('SHORTENER_BASE_URL', 'https://www.atozcartoonist.com/redirect/')
+    encoded_url = encode_url_b64(longurl)
+    redirect_url = f"{base_redirect_url}?url={encoded_url}"
+    return redirect_url
