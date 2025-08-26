@@ -10,10 +10,6 @@ from urllib3 import disable_warnings
 from bot import config_dict, LOGGER, SHORTENERES, SHORTENER_APIS
 from bot.helper.ext_utils.bot_utils import is_premium_user
 
-# == new imports for info check ==
-import requests
-from bs4 import BeautifulSoup
-
 def generate_alias(prefix="DCBOTS_________", length=5):
     chars = string.ascii_letters + string.digits
     suffix = ''.join(random.choices(chars, k=length))
@@ -77,81 +73,3 @@ def short_url(longurl, user_id=None, attempt=0, use_custom_alias=True):
             LOGGER.error(f"Error using {_shortener}: {e}")
             sleep(1)
     return longurl
-
-# =========================
-#     NEW FEATURE BELOW
-# =========================
-
-def get_gplinks_info(alias):
-    """
-    Check click statistics of a gplinks shortlink by alias.
-    Returns: {
-        "country_clicks": dict,
-        "total_clicks": int,
-        "referrers": dict
-    }
-    """
-    info_url = f"https://gplinks.com/{alias}/info"
-    try:
-        r = requests.get(info_url, timeout=10)
-        r.raise_for_status()
-        soup = BeautifulSoup(r.text, 'html.parser')
-        # Country clicks table
-        country_clicks = {}
-        total_clicks = 0
-        referrers = {}
-
-        # Get country and click info
-        countries = [td.get_text(strip=True) for td in soup.find_all('td')]
-        for idx, v in enumerate(countries):
-            if v == "Country":
-                # Next cell is country, then next is clicks value, etc.
-                try:
-                    country = countries[idx+1]
-                    clicks = int(countries[idx+2])
-                    country_clicks[country] = clicks
-                    total_clicks += clicks
-                except:
-                    pass
-
-        # Fallback to sum first detected country clicks table
-        if not country_clicks:
-            # Attempt to find first number as clicks
-            for td in soup.find_all('td'):
-                text = td.get_text(strip=True)
-                if text.isdigit():
-                    total_clicks = int(text)
-                    break
-        # Referrer parsing
-        for idx, v in enumerate(countries):
-            if v == "Domain":
-                domain = countries[idx+1]
-                clicks = int(countries[idx+2])
-                referrers[domain] = clicks
-
-        return {
-            "country_clicks": country_clicks,
-            "total_clicks": total_clicks,
-            "referrers": referrers
-        }
-    except Exception as e:
-        LOGGER.error(f"Info page parse failed for alias {alias}: {e}")
-        return {
-            "country_clicks": {},
-            "total_clicks": 0,
-            "referrers": {}
-        }
-
-# Helper to check if link was used
-def gplinks_link_clicked(alias, min_clicks=1):
-    """
-    Returns True if the gplinks alias has at least `min_clicks` clicks, else False.
-    """
-    try:
-        info = get_gplinks_info(alias)
-        return info["total_clicks"] >= min_clicks
-    except:
-        return False
-
-# ============= END =============
-
