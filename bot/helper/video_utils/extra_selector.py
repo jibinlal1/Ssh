@@ -208,8 +208,40 @@ class ExtraSelect:
         keys = list(resulution)
         for key in keys[keys.index(hvid)+1:]:
             buttons.button_data(resulution[key], f'extra convert {key}')
+
+        buttons.button_data('CRF', 'extra convert crf')
+        buttons.button_data('Custom FFmpeg', 'extra convert custom')
         buttons.button_data('Cancel', 'extra cancel', 'footer')
         await self.update_message(f'{self._listener.tag}, Select available resulution to convert.\n<code>{self.executor.name}</code>', buttons.build_menu(2))
+
+    async def _select_crf_quality(self, streams: dict):
+        buttons = ButtonMaker()
+        text = (f'<b>CRF CONVERT SETTINGS ~ {self._listener.tag}</b>\n'
+                f'<code>{self.executor.name}</code>\n\n'
+                'Please select a CRF value:\n'
+                '<i>Lower value means higher quality but larger size.</i>')
+        
+        for crf_value in ['18', '21', '23', '25', '28']:
+            buttons.button_data(f'CRF {crf_value}', f'extra convert crf_set {crf_value}')
+        
+        buttons.button_data('Custom CRF', 'extra convert custom_crf')
+        buttons.button_data('Back', 'extra convert back', 'footer')
+        buttons.button_data('Cancel', 'extra cancel', 'footer')
+
+        await self.update_message(text, buttons.build_menu(3))
+
+    async def _custom_ffmpeg_command(self):
+        self.status = 'await_custom_cmd'
+        text = f"<b>CUSTOM FFmpeg COMMAND ~ {self._listener.tag}</b>\n\n"
+        text += "Please send your custom FFmpeg command. For example:\n"
+        text += "```-c:v libx265 -crf 28 -c:a aac -b:a 160k```\n\n"
+        text += "<i>Timeout: 60s.</i>"
+        
+        buttons = ButtonMaker()
+        buttons.button_data('Cancel', 'extra cancel', 'footer')
+        
+        await self.update_message(text, buttons.build_menu(1))
+        self.event.set()
 
     async def subsync_select(self, streams: dict):
         buttons = ButtonMaker()
@@ -334,8 +366,19 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             obj.event.set()
         case 'convert':
             await query.answer()
-            obj.executor.data = data[2]
-            obj.event.set()
+            match data[2]:
+                case 'crf':
+                    await obj._select_crf_quality(obj.executor.data['streams'])
+                case 'crf_set':
+                    obj.executor.data['crf'] = int(data[3])
+                    obj.event.set()
+                case 'custom':
+                    await obj._custom_ffmpeg_command()
+                case 'back':
+                    await obj.convert_select(obj.executor.data['streams'])
+                case _:
+                    obj.executor.data = data[2]
+                    obj.event.set()
         case 'rmstream':
             ddict: dict = obj.executor.data
             match data[2]:
