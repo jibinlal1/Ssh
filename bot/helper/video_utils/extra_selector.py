@@ -158,6 +158,24 @@ class ExtraSelect:
         
         text += f'Select stream type to swap:\n\n<i>Time Out: {get_readable_time(180 - (time()-self._time))}</i>'
         await self.update_message(text, buttons.build_menu(2))
+    
+    async def _select_streams_to_swap(self, streams: list):
+        buttons = ButtonMaker()
+        text = (f"<b>SWAP STREAM SETTINGS ~ {self._listener.tag}</b>\n"
+                f"<code>{self.executor.name}</code>\n"
+                f"File Size: <b>{get_readable_file_size(self.executor.size)}</b>\n\n"
+                f"Selected: {self.swap_selection['streams']}\n")
+
+        for s in streams:
+            lang = s.get('tags', {}).get('language', f'#{s.get("index")}')
+            buttons.button_data(f"Stream {s['index']} ({lang.upper()})", f"extra swap_stream {s['index']}")
+        
+        buttons.button_data('Back', f"extra swap_select {self.swap_selection['mode']}", 'footer')
+        buttons.button_data('Cancel', 'extra cancel', 'footer')
+        buttons.button_data('Continue', 'extra swap_continue', 'footer')
+        
+        text += f'Select two streams to swap:\n\n<i>Time Out: {get_readable_time(180 - (time()-self._time))}</i>'
+        await self.update_message(text, buttons.build_menu(5))
 
     async def convert_select(self, streams: dict):
         buttons = ButtonMaker()
@@ -259,13 +277,12 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             text = (f"<b>SWAP STREAM SETTINGS ~ {obj._listener.tag}</b>\n"
                     f"<code>{obj.executor.name}</code>\n"
                     f"File Size: <b>{get_readable_file_size(obj.executor.size)}</b>\n\n"
-                    f"Select a stream from the list below.\n"
                     f"Selected: {obj.swap_selection['streams']}\n\n")
 
             for s in stream_data:
                 lang = s.get('tags', {}).get('language', f'#{s.get("index")}')
                 buttons.button_data(f"{lang.upper()} ({s['index']})", f"extra swap_stream {s['index']}")
-
+            
             buttons.button_data('Back', 'extra swap_back')
             buttons.button_data('Cancel', 'extra cancel')
             buttons.button_data('Continue', 'extra swap_continue')
