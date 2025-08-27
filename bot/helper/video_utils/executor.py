@@ -364,13 +364,13 @@ class VidEcxecutor(FFProgress):
         self.outfile = self._up_path
         for file in (file_list := await self._get_files()):
             self.path = file
+            self._files.append(self.path)
             if self._metadata:
                 base_dir = self.listener.dir
                 await makedirs(base_dir, exist_ok=True)
             else:
                 base_dir, self.size = await gather(self._name_base_dir(self.path, 'Trim', len(file_list) > 1), get_path_size(self.path))
             self.outfile = ospath.join(base_dir, self.name)
-            self._files.append(self.path)
             cmd = [FFMPEG_NAME, '-hide_banner', '-ignore_unknown', '-i', self.path, '-ss', start_time, '-to', end_time,
                    '-map', '0:v:0?', '-map', '0:a:?', '-map', '0:s:?', '-c:v', 'copy', '-c:a', 'copy', '-c:s', 'copy',  self.outfile, '-y']
             await self._run_cmd(cmd)
@@ -434,7 +434,7 @@ class VidEcxecutor(FFProgress):
             if self.is_cancel:
                 return
 
-        return await self._final_path(self._up_path)
+        return await self._final_path()
 
     async def _vid_compress(self, quality=None):
         file_list = await self._get_files()
@@ -652,7 +652,7 @@ class VidEcxecutor(FFProgress):
 
         return await self._final_path()
 
-        async def _swap_streams(self):
+    async def _swap_streams(self):
         file_list = await self._get_files()
         multi = len(file_list) > 1
         if not file_list:
