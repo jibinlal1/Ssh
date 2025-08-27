@@ -137,7 +137,7 @@ class ExtraSelect:
                 f"<code>{self.executor.name}</code>\n"
                 f"File Size: <b>{get_readable_file_size(self.executor.size)}</b>\n\n")
 
-        all_streams = [s for s in streams if s['codec_type'] in ['audio', 'subtitle']]
+        all_streams = [s for s in streams if s['codec_type'] == 'audio']
         
         reordered_streams = self.executor.data.get('remaps', {})
         
@@ -147,7 +147,7 @@ class ExtraSelect:
             new_pos = reordered_streams.get(s['index'], s['index'])
             text += f"{s['codec_type'].title()} Stream {s['index']} ({lang.upper()}) -> New Position: {new_pos}\n"
 
-        text += "\n<b>Select a stream to reorder:</b>\n"
+        text += "\n<b>Select an audio stream to reorder:</b>\n"
 
         for s in all_streams:
             lang = s.get('tags', {}).get('language', f'#{s.get("index")}')
@@ -268,21 +268,25 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             await query.answer()
             stream_index = int(data[2])
             obj.swap_selection['selected_stream'] = stream_index
-            total_streams = len([s for s in obj.executor.data['streams'] if s['codec_type'] in ['audio', 'subtitle']])
+            total_streams = len([s for s in obj.executor.data['streams'] if s['codec_type'] == 'audio'])
             await obj._select_swap_position(stream_index, total_streams)
         case 'swap_position':
             await query.answer()
             new_position = int(data[2])
             old_stream_index = obj.swap_selection.pop('selected_stream')
-
+            
+            # The remaps dictionary is in self.executor.data
+            remaps = obj.executor.data.get('remaps', {})
+            
             # Use a check to prevent mapping to the same position twice
-            if new_position in obj.executor.data['remaps'].values():
+            if new_position in remaps.values():
                 await query.answer(f"Position {new_position} is already taken. Please choose another position.", show_alert=True)
                 obj.swap_selection['selected_stream'] = old_stream_index
-                await obj._select_swap_position(old_stream_index, len([s for s in obj.executor.data['streams'] if s['codec_type'] in ['audio', 'subtitle']]))
+                await obj._select_swap_position(old_stream_index, len([s for s in obj.executor.data['streams'] if s['codec_type'] == 'audio']))
                 return
-
-            obj.executor.data['remaps'][old_stream_index] = new_position
+            
+            remaps[old_stream_index] = new_position
+            obj.executor.data['remaps'] = remaps # Update the remaps dictionary in executor.data
             
             await obj.swap_stream_select(obj.executor.data['streams'])
         case 'swap_back':
