@@ -652,7 +652,7 @@ class VidEcxecutor(FFProgress):
 
         return await self._final_path()
 
-    async def _swap_streams(self):
+        async def _swap_streams(self):
         file_list = await self._get_files()
         multi = len(file_list) > 1
         if not file_list:
