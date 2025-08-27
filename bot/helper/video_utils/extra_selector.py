@@ -130,7 +130,7 @@ class ExtraSelect:
         await self.update_message(*self._streams_select(streams))
     
     async def swap_stream_select(self, streams: dict):
-        self.executor.data = {'streams': streams, 'remaps': {}, 'selected_stream': None}
+        self.executor.data = {'streams': streams, 'remaps': self.swap_selection['remaps'], 'selected_stream': self.swap_selection['selected_stream']}
         buttons = ButtonMaker()
         
         text = (f"<b>STREAM REORDER SETTINGS ~ {self._listener.tag}</b>\n"
@@ -165,10 +165,17 @@ class ExtraSelect:
                 f"<code>{self.executor.name}</code>\n"
                 f"Selected Stream: <b>{selected_stream_index}</b>\n\n"
                 f"Select the new position for this stream:")
-
+        
+        # Determine occupied positions from remaps
+        occupied_positions = list(self.swap_selection['remaps'].values())
+        
+        # Dynamically create buttons for available positions
         for i in range(1, total_streams + 1):
+            if i in occupied_positions:
+                continue
             buttons.button_data(str(i), f"extra swap_position {i}")
         
+        buttons.button_data('Back', 'extra swap_back', 'footer')
         buttons.button_data('Cancel', 'extra cancel', 'footer')
         
         await self.update_message(text, buttons.build_menu(5))
@@ -286,7 +293,7 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                 return
 
             remaps[old_stream_index] = new_position
-            obj.executor.data['remaps'] = remaps # Update the remaps dictionary in executor.data
+            obj.executor.data['remaps'] = remaps
             
             await obj.swap_stream_select(obj.executor.data['streams'])
         case 'swap_back':
