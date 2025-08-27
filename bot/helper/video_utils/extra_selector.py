@@ -280,7 +280,6 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             await query.answer()
             old_stream_index = obj.swap_selection.get('selected_stream')
             if not old_stream_index:
-                # Handle the case where 'selected_stream' is not in the dictionary
                 await query.answer("Please select a stream first!", show_alert=True)
                 return
 
