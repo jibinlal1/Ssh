@@ -314,22 +314,39 @@ class FFProgress:
 
             if progress := dict(re_findall(r'(frame|fps|size|time|bitrate|speed)\s*\=\s*(\S+)', line.decode('utf-8'))):
                 time_str = progress.get('time')
+                size_str = progress.get('size', '0')
                 
+                # Safely parse the 'size' string with different units
+                try:
+                    size_match = re_search(r'(\d+)', size_str)
+                    if size_match:
+                        size_value = int(size_match.group(1))
+                        if 'Ki' in size_str:
+                            self._processed_bytes = size_value * 1024
+                        elif 'kB' in size_str:
+                            self._processed_bytes = size_value * 1000
+                        else:
+                            self._processed_bytes = size_value
+                    else:
+                        self._processed_bytes = 0
+                except (ValueError, KeyError):
+                    self._processed_bytes = 0
+
+                # Safely parse the 'time' string
                 if time_str and ':' in time_str:
                     try:
                         hh, mm, sms = time_str.split(':')
                         time_to_second = (int(hh) * 3600) + (int(mm) * 60) + float(sms)
                         if not self._duration:
                             self._duration = (await get_media_info(self.path))[0]
-                        self._processed_bytes = int(progress.get('size', '0').rstrip('kB')) * 1024
                         self._percentage = f'{round((time_to_second / self._duration) * 100, 2)}%'
                         try:
                             self._eta = (self._duration / float(progress.get('speed', '0').strip('x'))) - ((time() - start_time))
                         except (ValueError, ZeroDivisionError):
                             pass
                     except (ValueError, KeyError) as e:
-                        # Log the unexpected format without crashing
                         LOGGER.warning(f"Failed to parse FFmpeg progress time: {time_str}, Error: {e}")
+                
                 elif status == 'direct':
                     self._processed_bytes = await get_path_size(self.outfile)
                     await sleep(0.5)
