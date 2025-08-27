@@ -47,6 +47,7 @@ class ExtraSelect:
     def _streams_select(self, streams: dict=None):
         buttons = ButtonMaker()
         if not self.executor.data:
+            self.executor.data = {}
             self.executor.data.setdefault('stream', {})
             self.executor.data['sdata'] = []
             for stream in streams:
@@ -109,13 +110,14 @@ class ExtraSelect:
         return text, buttons.build_menu(2)
 
     def set_default_audio_stream(self, streams: list[dict]):
-        """Set the first audio stream index as default audio stream in executor data."""
+        if self.executor.data is None:
+            self.executor.data = {}
         first_audio_index = next((s['index'] for s in streams if s['codec_type'] == 'audio'), None)
         self.executor.data['default_audio'] = first_audio_index
 
     async def compress_select(self, streams: dict):
         self.executor.data = {}
-        self.set_default_audio_stream(streams)  # Set default audio here
+        self.set_default_audio_stream(streams)
         buttons = ButtonMaker()
         for stream in streams:
             indexmap, codec_type, lang = stream.get('index'), stream.get('codec_type'), stream.get('tags', {}).get('language')
@@ -136,8 +138,8 @@ class ExtraSelect:
         await self.update_message(*self._streams_select(streams))
     
     async def swap_stream_select(self, streams: dict):
-        self.set_default_audio_stream(streams)  # Set default audio here as well
         self.executor.data = {'streams': streams, 'remaps': self.swap_selection['remaps'], 'selected_stream': self.swap_selection['selected_stream']}
+        self.set_default_audio_stream(streams)
         buttons = ButtonMaker()
         
         text = (f"<b>STREAM REORDER SETTINGS ~ {self._listener.tag}</b>\n"
