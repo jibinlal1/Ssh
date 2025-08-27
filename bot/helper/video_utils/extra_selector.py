@@ -4,7 +4,7 @@ from asyncio import Event, wait_for, wrap_future, gather
 from functools import partial
 from pyrogram.filters import regex, user
 from pyrogram.handlers import CallbackQueryHandler
-from pyrogram.types import CallbackQuery
+from pyrogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from time import time
 
 from bot import VID_MODE
