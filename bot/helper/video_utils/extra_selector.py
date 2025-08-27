@@ -43,7 +43,7 @@ class ExtraSelect:
         else:
             await editMessage(text, self._reply, buttons)
 
-    def streams_select(self, streams: dict = None):
+    async def _streams_select(self, streams: dict = None):
         buttons = ButtonMaker()
         if not self.executor.data:
             self.executor.data.setdefault('stream', {})
@@ -76,6 +76,8 @@ class ExtraSelect:
                         f'<b></b>Subtitle Format: <b>{subext.upper()}</b>\n'
                         f"<b></b>Alternative Mode: <b>{'✓ Enable' if ddict.get('alt_mode') else 'Disable'}</b>\n\n"
                         'Select avalilable stream below to unpack!')
+            elif mode == 'swap_stream':
+                pass # The new swap_stream_select method handles this
             else:
                 if value['type'] != 'video':
                     buttons.button_data(value['info'], f'extra {mode} {key}')
@@ -124,7 +126,7 @@ class ExtraSelect:
 
     async def rmstream_select(self, streams: dict):
         self.executor.data = {}
-        await self.update_message(*self.streams_select(streams))
+        await self.update_message(*self._streams_select(streams))
     
     async def swap_stream_select(self, streams: dict):
         self.executor.data = {}
@@ -149,7 +151,6 @@ class ExtraSelect:
                 text += f"{s['index']}. {lang.upper()}\n"
             text += "\n"
 
-        # Buttons for stream selection (e.g., 1, 2, 3, 4)
         stream_buttons = [InlineKeyboardButton(str(s['index']), f"extra swap_stream {s['index']}") for s in streams if s['codec_type'] in ['audio', 'subtitle']]
         
         buttons.add_button(stream_buttons)
@@ -226,7 +227,7 @@ class ExtraSelect:
         if not ext[1]:
             ext[1] = 'srt'
         self.extension = ext
-        await self.update_message(*self.streams_select(streams))
+        await self.update_message(*self._streams_select(streams))
 
     async def get_buttons(self, *args):
         future = self._event_handler()
@@ -249,18 +250,18 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             obj.executor.data = None
             obj.event.set()
         case 'swap_stream':
-            if len(obj.executor.data.get('sdata', [])) >= 2:
-                # If two streams are already selected, this button will now function as "Done"
-                await query.answer('Streams selected! Starting the swap process.', True)
+            # This handles the stream selection.
+            stream_index = int(data[2])
+            obj.executor.data.setdefault('sdata', []).append(stream_index)
+
+            if len(obj.executor.data['sdata']) == 1:
+                # First stream selected, prompt for the second
+                await query.answer(f"Selected stream {stream_index}. Select the second stream to swap.", show_alert=True)
+                await editMessage(f"Selected stream {stream_index}. Select the second stream to swap:", query.message)
+            elif len(obj.executor.data['sdata']) == 2:
+                # Both streams selected, proceed with the swap
+                await query.answer('Streams selected! Starting the swap process.', show_alert=True)
                 obj.event.set()
-            else:
-                await query.answer()
-                obj.executor.data.setdefault('sdata', []).append(int(data[2]))
-                if len(obj.executor.data['sdata']) == 2:
-                    await editMessage(f"Selected streams {obj.executor.data['sdata'][0]} and {obj.executor.data['sdata'][1]}. Starting swap process.", query.message)
-                    obj.event.set()
-                else:
-                    await editMessage(f"Selected stream {obj.executor.data['sdata'][0]}. Select the second stream to swap:", query.message)
         case 'subsync':
             if data[2].isdigit():
                 obj.status = int(data[2])
@@ -289,7 +290,7 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                             info = ddict['stream'][mapindex]['info']
                             ddict['stream'][mapindex]['info'] = info.replace('✓ ', '')
                         sdata.clear()
-                        await obj.update_message(*obj.streams_select())
+                        await obj.update_message(*obj._streams_select())
                     else:
                         await query.answer('No any selected stream to reset!', True)
                 case 'continue':
@@ -310,7 +311,7 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                             info = value['info']
                             ddict['stream'][key]['info'] = f'✓ {info}' if key in new_sdata else info.replace('✓ ', '')
                         ddict['sdata'] = new_sdata
-                        await obj.update_message(*obj.streams_select())
+                        await obj.update_message(*obj._streams_select())
                     else:
                         await query.answer('No any selected stream to revers!', True)
                 case value:
@@ -323,7 +324,7 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                     else:
                         ddict['sdata'].append(mapindex)
                         ddict['stream'][mapindex]['info'] = f'✓ {info}'
-                    await obj.update_message(*obj.streams_select())
+                    await obj.update_message(*obj._streams_select())
         case 'extract':
             value = data[2]
             await query.answer()
@@ -343,7 +344,7 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                     obj.extension[index] = ext
                 if value == 'alt':
                     obj.executor.data['alt_mode'] = not literal_eval(data[3])
-                await obj.update_message(*obj.streams_select())
+                await obj.update_message(*obj._streams_select())
             else:
                 obj.executor.data.update({'key': int(value) if value.isdigit() else data[2:],
                                           'extension': obj.extension})
