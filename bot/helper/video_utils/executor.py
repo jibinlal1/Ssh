@@ -714,7 +714,7 @@ class VidEcxecutor(FFProgress):
             # Add video stream mapping (assuming one video stream)
             video_stream = next((s for s in streams if s['codec_type'] == 'video'), None)
             if video_stream:
-                map_args.extend(['-map', f'0:{video_stream['index']}'])
+                map_args.extend(['-map', f'0:{video_stream["index"]}'])
             
             cmd.extend(map_args)
             cmd.extend(['-c', 'copy', self.outfile])
