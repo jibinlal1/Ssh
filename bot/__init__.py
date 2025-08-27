@@ -87,7 +87,7 @@ VID_MODE = {'vid_vid': 'Video + Video',
             'extract': 'Extract',
             'trim': 'Trim',
             'rmstream': 'Remove Stream',
-            'swap_stream': 'Swap Stream'}
+            'swap_stream': 'Swap Audio'}
 
 DEFAULT_SPLIT_SIZE = 2097151000
 ARIA_NAME = environ.get('ARIA_NAME', 'huntria')
