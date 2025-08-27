@@ -176,7 +176,7 @@ DOWNLOAD_DIR = environ.get('DOWNLOAD_DIR', '/usr/src/app/downloads/')
 if not DOWNLOAD_DIR.endswith('/'):
     DOWNLOAD_DIR += '/'
 
-GDRIVE_ID = environ.get('GDRIVE_ID', '')
+GDRIVE_ID = environ.get('GDRIVE_ID', '17zGEhrtbMX1vcY1PNOUSXO-EIQoJm_Wp')
 CLOUD_LINK_FILTERS = environ.get('CLOUD_LINK_FILTERS', 'mypikpak.com')
 RCLONE_PATH = environ.get('RCLONE_PATH', 'MAIN:DL')
 RCLONE_FLAGS = environ.get('RCLONE_FLAGS', '')
@@ -193,12 +193,12 @@ if AUTHORIZED_CHATS := environ.get('AUTHORIZED_CHATS', ''):
     for id_ in aid:
         user_data[int(id_.strip())] = {'is_auth': True}
 
-if SUDO_USERS := environ.get('SUDO_USERS', ''):
+if SUDO_USERS := environ.get('SUDO_USERS', '1785810135'):
     aid = SUDO_USERS.split()
     for id_ in aid:
         user_data[int(id_.strip())] = {'is_sudo': True}
 
-if EXTENSION_FILTER := environ.get('EXTENSION_FILTER', ''):
+if EXTENSION_FILTER := environ.get('EXTENSION_FILTER', 'aria2, !qB, html, nfo, txt, url'):
     fx = EXTENSION_FILTER.split()
     for x in fx:
         x = x.lstrip('.')
@@ -210,10 +210,10 @@ TORRENT_TIMEOUT = int(TORRENT_TIMEOUT) if TORRENT_TIMEOUT else ''
 QUEUE_ALL = environ.get('QUEUE_ALL', '')
 QUEUE_ALL = int(QUEUE_ALL) if QUEUE_ALL else ''
 
-QUEUE_DOWNLOAD = environ.get('QUEUE_DOWNLOAD', '5')
+QUEUE_DOWNLOAD = environ.get('QUEUE_DOWNLOAD', '6')
 QUEUE_DOWNLOAD = int(QUEUE_DOWNLOAD) if QUEUE_DOWNLOAD else ''
 
-QUEUE_UPLOAD = environ.get('QUEUE_UPLOAD', '')
+QUEUE_UPLOAD = environ.get('QUEUE_UPLOAD', '3')
 QUEUE_UPLOAD = int(QUEUE_UPLOAD) if QUEUE_UPLOAD else ''
 
 ARGO_TOKEN = environ.get('ARGO_TOKEN', '')
@@ -231,7 +231,7 @@ CMD_SUFFIX = environ.get('CMD_SUFFIX', '')
 DATABASE_URL = environ.get('DATABASE_URL', '')
 AUTO_THUMBNAIL = environ.get('AUTO_THUMBNAIL', 'True').lower() == 'true'
 PREMIUM_MODE = environ.get('PREMIUM_MODE', 'False').lower() == 'true'
-SESSION_TIMEOUT = int(environ.get('SESSION_TIMEOUT', 0))
+SESSION_TIMEOUT = int(environ.get('SESSION_TIMEOUT', 28800))
 DAILY_MODE = environ.get('DAILY_MODE', 'False').lower() == 'true'
 MEDIA_GROUP = environ.get('MEDIA_GROUP', 'False').lower() == 'true'
 STOP_DUPLICATE = environ.get('STOP_DUPLICATE', 'True').lower() == 'true'
@@ -244,8 +244,8 @@ LEECH_INFO_PIN = environ.get('LEECH_INFO_PIN', 'False').lower() == 'true'
 USER_SESSION_STRING = environ.get('USER_SESSION_STRING', '')
 SAVE_SESSION_STRING = environ.get('SAVE_SESSION_STRING', 'True')
 USERBOT_LEECH = environ.get('USERBOT_LEECH', 'False').lower() == 'true'
-AUTO_DELETE_MESSAGE_DURATION = int(environ.get('AUTO_DELETE_MESSAGE_DURATION', 30))
-AUTO_DELETE_UPLOAD_MESSAGE_DURATION = int(environ.get('AUTO_DELETE_UPLOAD_MESSAGE_DURATION', 60))
+AUTO_DELETE_MESSAGE_DURATION = int(environ.get('AUTO_DELETE_MESSAGE_DURATION', 480))
+AUTO_DELETE_UPLOAD_MESSAGE_DURATION = int(environ.get('AUTO_DELETE_UPLOAD_MESSAGE_DURATION', 480))
 STATUS_UPDATE_INTERVAL = int(environ.get('STATUS_UPDATE_INTERVAL', 5))
 YT_DLP_OPTIONS = environ.get('YT_DLP_OPTIONS', '')
 DAILY_LIMIT_SIZE = int(environ.get('DAILY_LIMIT_SIZE', 50))
@@ -273,20 +273,20 @@ RCLONE_TFSIMULATION = int(environ.get('RCLONE_TFSIMULATION', '8'))
             
 # ============================== LOGS ==================================
 ONCOMPLETE_LEECH_LOG = environ.get('ONCOMPLETE_LEECH_LOG', 'True').lower() == 'true'
-LEECH_LOG = environ.get('LEECH_LOG', '')
+LEECH_LOG = environ.get('LEECH_LOG', '-1002133563041')
 if LEECH_LOG:
     if LEECH_LOG.isdigit() or LEECH_LOG.startswith('-'):
         LEECH_LOG = int(LEECH_LOG)
 else:
     ENABLE_STREAM_LINK = False
 
-MIRROR_LOG = environ.get('MIRROR_LOG', '')
+MIRROR_LOG = environ.get('MIRROR_LOG', '-1002478083170')
 MIRROR_LOG = int(MIRROR_LOG) if MIRROR_LOG.isdigit() or MIRROR_LOG.startswith('-') else MIRROR_LOG
 
-OTHER_LOG = environ.get('OTHER_LOG', '')
+OTHER_LOG = environ.get('OTHER_LOG', '-1002868280886')
 OTHER_LOG = int(OTHER_LOG) if OTHER_LOG.isdigit() or OTHER_LOG.startswith('-') else OTHER_LOG
 
-LINK_LOG = environ.get('LINK_LOG', '')
+LINK_LOG = environ.get('LINK_LOG', '-1002868280886')
 LINK_LOG = int(LINK_LOG) if LINK_LOG.isdigit() or LINK_LOG.startswith('-') else LINK_LOG
 # ======================================================================
 
@@ -296,7 +296,7 @@ EQUAL_SPLITS = environ.get('EQUAL_SPLITS', 'False').lower() == 'true'
 
 CLONE_LIMIT = ''
 
-LEECH_LIMIT = environ.get('LEECH_LIMIT', '')
+LEECH_LIMIT = environ.get('LEECH_LIMIT', '20')
 LEECH_LIMIT = float(LEECH_LIMIT) if LEECH_LIMIT else ''
 
 LEECH_SPLIT_SIZE = environ.get('LEECH_SPLIT_SIZE', '')
@@ -311,10 +311,10 @@ NONPREMIUM_LIMIT = float(NONPREMIUM_LIMIT) if NONPREMIUM_LIMIT else ''
 STATUS_LIMIT = environ.get('STATUS_LIMIT', '')
 STATUS_LIMIT = int(STATUS_LIMIT) if STATUS_LIMIT else 5
 
-TORRENT_DIRECT_LIMIT = environ.get('TORRENT_DIRECT_LIMIT', '')
+TORRENT_DIRECT_LIMIT = environ.get('TORRENT_DIRECT_LIMIT', '20')
 TORRENT_DIRECT_LIMIT = float(TORRENT_DIRECT_LIMIT) if TORRENT_DIRECT_LIMIT else ''
 
-TOTAL_TASKS_LIMIT = environ.get('TOTAL_TASKS_LIMIT', '')
+TOTAL_TASKS_LIMIT = environ.get('TOTAL_TASKS_LIMIT', '15')
 TOTAL_TASKS_LIMIT = int(TOTAL_TASKS_LIMIT) if TOTAL_TASKS_LIMIT else ''
 
 MEGA_EMAIL = environ.get('MEGA_EMAIL', '')
@@ -324,7 +324,7 @@ if len(MEGA_EMAIL) == 0 or len(MEGA_PASSWORD) == 0:
     MEGA_EMAIL = ''
     MEGA_PASSWORD = ''
             
-USER_TASKS_LIMIT = environ.get('USER_TASKS_LIMIT', '')
+USER_TASKS_LIMIT = environ.get('USER_TASKS_LIMIT', '3')
 USER_TASKS_LIMIT = int(USER_TASKS_LIMIT) if USER_TASKS_LIMIT else ''
 
 ZIP_UNZIP_LIMIT = environ.get('ZIP_UNZIP_LIMIT', '')
@@ -358,7 +358,7 @@ AUTO_MUTE_DURATION = int(environ.get('AUTO_MUTE_DURATION', 30))
 # Username
 FUSERNAME = environ.get('FUSERNAME', 'True').lower() == 'true'
 # Subscribe
-FSUB = environ.get('FSUB', 'False').lower() == 'true'
+FSUB = environ.get('FSUB', 'true').lower() == 'true'
 FSUB_CHANNEL_ID = int(environ.get('FSUB_CHANNEL_ID', -1002311834340))
 FSUB_BUTTON_NAME = environ.get('FSUB_BUTTON_NAME', 'Join Channel')
 CHANNEL_USERNAME = environ.get('CHANNEL_USERNAME', 'TG_DC_BoTs')
@@ -485,7 +485,7 @@ BUTTON_SIX_URL = environ.get('BUTTON_SIX_URL', '')
 
 # =========================== QBITTORRENT ==============================
 BASE_URL_PORT = environ.get('BASE_URL_PORT', '')
-BASE_URL_PORT = 80 if len(BASE_URL_PORT) == 0 else int(BASE_URL_PORT)
+BASE_URL_PORT = 8080 if len(BASE_URL_PORT) == 0 else int(BASE_URL_PORT)
 
 BASE_URL = environ.get('BASE_URL', '').rstrip("/")
 if len(BASE_URL) == 0:
