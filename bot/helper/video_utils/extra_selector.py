@@ -43,7 +43,7 @@ class ExtraSelect:
         else:
             await editMessage(text, self._reply, buttons)
 
-    async def _streams_select(self, streams: dict = None):
+    def _streams_select(self, streams: dict = None):
         buttons = ButtonMaker()
         if not self.executor.data:
             self.executor.data.setdefault('stream', {})
@@ -151,10 +151,16 @@ class ExtraSelect:
                 text += f"{s['index']}. {lang.upper()}\n"
             text += "\n"
 
-        stream_buttons = [InlineKeyboardButton(str(s['index']), f"extra swap_stream {s['index']}") for s in streams if s['codec_type'] in ['audio', 'subtitle']]
+        stream_buttons = []
+        for s in streams:
+            if s['codec_type'] in ['audio', 'subtitle']:
+                stream_buttons.append(InlineKeyboardButton(str(s['index']), f"extra swap_stream {s['index']}"))
         
-        buttons.add_button(stream_buttons)
-        buttons.add_button([InlineKeyboardButton('Cancel', f'extra cancel')])
+        # Use button_data instead of the non-existent add_button
+        for b in stream_buttons:
+            buttons.button_data(b.text, b.callback_data)
+
+        buttons.button_data('Cancel', f'extra cancel', 'footer')
         
         text += f'Select stream to swap:\n\n<i>Time Out: {get_readable_time(180 - (time()-self._time))}</i>'
         await self.update_message(text, buttons.build_menu(5))
