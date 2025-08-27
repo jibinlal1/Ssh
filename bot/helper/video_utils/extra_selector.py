@@ -25,7 +25,7 @@ class ExtraSelect:
         self.is_cancel = False
         self.extension: list[str] = [None, None, 'mkv']
         self.status = ''
-        self.swap_selection = {'mode': None, 'streams': []}
+        self.swap_selection = {'selected_stream': None, 'new_position': None, 'remaps': {}}
 
     @new_thread
     async def _event_handler(self):
@@ -78,7 +78,7 @@ class ExtraSelect:
                         f"<b></b>Alternative Mode: <b>{'✓ Enable' if ddict.get('alt_mode') else 'Disable'}</b>\n\n"
                         'Select avalilable stream below to unpack!')
             elif mode == 'swap_stream':
-                pass # The new swap_stream_select method handles this
+                pass
             else:
                 if value['type'] != 'video':
                     buttons.button_data(value['info'], f'extra {mode} {key}')
@@ -130,56 +130,42 @@ class ExtraSelect:
         await self.update_message(*self._streams_select(streams))
     
     async def swap_stream_select(self, streams: dict):
-        self.executor.data = {'sdata': [], 'streams': streams, 'remaps': {}}
+        self.executor.data = {'streams': streams, 'remaps': {}, 'selected_stream': None}
         buttons = ButtonMaker()
-        text = (f"<b>SWAP STREAM SETTINGS ~ {self._listener.tag}</b>\n"
+        
+        text = (f"<b>STREAM REORDER SETTINGS ~ {self._listener.tag}</b>\n"
                 f"<code>{self.executor.name}</code>\n"
                 f"File Size: <b>{get_readable_file_size(self.executor.size)}</b>\n\n")
 
-        audio_streams = [s for s in streams if s['codec_type'] == 'audio']
-        if audio_streams:
-            text += "<b>Audio Stream Position</b>\n"
-            for s in audio_streams:
-                lang = s.get('tags', {}).get('language', f'#{s.get("index")}')
-                text += f"{s['index']}. {lang.upper()}\n"
-            text += "\n"
-            buttons.button_data("Audio", "extra swap_select audio")
-
-        subtitle_streams = [s for s in streams if s['codec_type'] == 'subtitle']
-        if subtitle_streams:
-            text += "<b>Subtitle Stream Position</b>\n"
-            for s in subtitle_streams:
-                lang = s.get('tags', {}).get('language', f'#{s.get("index")}')
-                text += f"{s['index']}. {lang.upper()}\n"
-            text += "\n"
-            buttons.button_data("Subtitle", "extra swap_select subtitle")
-
-        buttons.button_data('Cancel', f'extra cancel')
+        all_streams = [s for s in streams if s['codec_type'] in ['audio', 'subtitle']]
         
-        text += f'Select stream type to reorder:\n\n<i>Time Out: {get_readable_time(180 - (time()-self._time))}</i>'
-        await self.update_message(text, buttons.build_menu(2))
-    
-    async def _select_streams_to_swap(self, streams: list):
-        buttons = ButtonMaker()
-        text = (f"<b>SWAP STREAM SETTINGS ~ {self._listener.tag}</b>\n"
-                f"<code>{self.executor.name}</code>\n"
-                f"File Size: <b>{get_readable_file_size(self.executor.size)}</b>\n\n"
-                f"Selected: {self.swap_selection['streams']}\n")
-
-        for s in streams:
+        reordered_streams = self.executor.data.get('remaps', {})
+        
+        # Display the current stream order
+        text += "<b>Current Stream Order:</b>\n"
+        for s in all_streams:
             lang = s.get('tags', {}).get('language', f'#{s.get("index")}')
-            buttons.button_data(f"Stream {s['index']} ({lang.upper()})", f"extra swap_stream {s['index']}")
+            new_pos = reordered_streams.get(s['index'], s['index'])
+            text += f"Stream {s['index']} ({lang.upper()}) -> New Position: {new_pos}\n"
+
+        text += "\n<b>Select a stream to reorder:</b>\n"
+
+        for s in all_streams:
+            lang = s.get('tags', {}).get('language', f'#{s.get("index")}')
+            button_text = f"✓ {lang.upper()} ({s['index']})" if s['index'] in reordered_streams else f"{lang.upper()} ({s['index']})"
+            buttons.button_data(button_text, f"extra swap_stream_select {s['index']}")
         
-        buttons.button_data('Back', 'extra swap_back')
-        buttons.button_data('Cancel', 'extra cancel')
+        buttons.button_data('Continue', 'extra swap_continue', 'footer')
+        buttons.button_data('Cancel', 'extra cancel', 'footer')
         
+        text += f'\n<i>Time Out: {get_readable_time(180 - (time()-self._time))}</i>'
         await self.update_message(text, buttons.build_menu(2))
 
     async def _select_swap_position(self, selected_stream_index: int, total_streams: int):
         buttons = ButtonMaker()
-        text = (f"<b>SWAP STREAM SETTINGS ~ {self._listener.tag}</b>\n"
+        text = (f"<b>STREAM REORDER SETTINGS ~ {self._listener.tag}</b>\n"
                 f"<code>{self.executor.name}</code>\n"
-                f"Selected Stream: {selected_stream_index}\n\n"
+                f"Selected Stream: <b>{selected_stream_index}</b>\n\n"
                 f"Select the new position for this stream:")
 
         for i in range(1, total_streams + 1):
@@ -188,7 +174,6 @@ class ExtraSelect:
         buttons.button_data('Cancel', 'extra cancel', 'footer')
         
         await self.update_message(text, buttons.build_menu(5))
-
 
     async def convert_select(self, streams: dict):
         buttons = ButtonMaker()
@@ -280,46 +265,12 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             obj.is_cancel = obj.executor.is_cancel = True
             obj.executor.data = None
             obj.event.set()
-        case 'swap_select':
-            await query.answer()
-            mode = data[2]
-            buttons = ButtonMaker()
-            
-            stream_data = [s for s in obj.executor.data['streams'] if s['codec_type'] == mode]
-            
-            text = (f"<b>SWAP STREAM SETTINGS ~ {obj._listener.tag}</b>\n"
-                    f"<code>{obj.executor.name}</code>\n"
-                    f"File Size: <b>{get_readable_file_size(obj.executor.size)}</b>\n\n"
-                    f"Selected: {obj.swap_selection['streams']}\n")
-
-            for s in stream_data:
-                lang = s.get('tags', {}).get('language', f'#{s.get("index")}')
-                buttons.button_data(f"{lang.upper()} ({s['index']})", f"extra swap_stream {s['index']}")
-            
-            buttons.button_data('Back', 'extra swap_back')
-            buttons.button_data('Cancel', 'extra cancel')
-            buttons.button_data('Continue', 'extra swap_continue')
-            
-            obj.swap_selection['mode'] = mode
-            await editMessage(text, query.message, buttons.build_menu(2))
-
-        case 'swap_stream':
+        case 'swap_stream_select':
             await query.answer()
             stream_index = int(data[2])
-
-            if 'selected_stream' not in obj.swap_selection:
-                obj.swap_selection['selected_stream'] = stream_index
-                total_streams = len([s for s in obj.executor.data['streams'] if s['codec_type'] == obj.swap_selection['mode']])
-                await obj._select_swap_position(stream_index, total_streams)
-            else:
-                new_position = stream_index
-                old_stream = obj.swap_selection['selected_stream']
-                # Store the remapping: original index -> new position
-                obj.executor.data['remaps'][old_stream] = new_position
-
-                obj.swap_selection.pop('selected_stream')
-                await obj.swap_stream_select(obj.executor.data['streams'])
-
+            obj.swap_selection['selected_stream'] = stream_index
+            total_streams = len([s for s in obj.executor.data['streams'] if s['codec_type'] == obj.swap_selection['mode']])
+            await obj._select_swap_position(stream_index, total_streams)
         case 'swap_position':
             await query.answer()
             new_position = int(data[2])
@@ -328,20 +279,17 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             obj.executor.data['remaps'][old_stream_index] = new_position
             
             await obj.swap_stream_select(obj.executor.data['streams'])
-        
         case 'swap_back':
             await query.answer()
-            obj.swap_selection = {'mode': None, 'streams': [], 'remaps': {}}
+            obj.swap_selection = {'selected_stream': None, 'new_position': None, 'remaps': {}}
             await obj.swap_stream_select(obj.executor.data['streams'])
-
         case 'swap_continue':
-            if len(obj.executor.data['remaps']) < 2:
+            if len(obj.executor.data.get('remaps')) < 2:
                 await query.answer('You must select at least two streams to reorder!', show_alert=True)
             else:
                 obj.executor.data['sdata'] = obj.executor.data['remaps']
                 await query.answer('Starting the reordering process.', show_alert=True)
                 obj.event.set()
-        
         case 'subsync':
             if data[2].isdigit():
                 obj.status = int(data[2])
