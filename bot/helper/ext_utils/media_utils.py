@@ -311,29 +311,30 @@ class FFProgress:
         async for line in self.readlines(self.listener.suproc.stderr):
             if self.is_cancel or self.listener.suproc == 'cancelled' or self.listener.suproc.returncode is not None:
                 return
-            
-            # Check if progress information is present in the line
+
             if progress := dict(re_findall(r'(frame|fps|size|time|bitrate|speed)\s*\=\s*(\S+)', line.decode('utf-8'))):
+                time_str = progress.get('time')
                 
-                # Use .get() to safely access 'time' or check for its existence
-                if 'time' in progress:
-                    # Your original logic here
-                    if not self._duration:
-                        self._duration = (await get_media_info(self.path))[0]
-                    hh, mm, sms = progress['time'].split(':')
-                    time_to_second = (int(hh) * 3600) + (int(mm) * 60) + float(sms)
-                    self._processed_bytes = int(progress['size'].rstrip('kB')) * 1024
-                    self._percentage = f'{round((time_to_second / self._duration) * 100, 2)}%'
+                if time_str and ':' in time_str:
                     try:
-                        self._eta = (self._duration / float(progress['speed'].strip('x'))) - ((time() - start_time))
-                    except:
-                        pass
-                
-                # Handles the 'direct' status as an alternative
+                        hh, mm, sms = time_str.split(':')
+                        time_to_second = (int(hh) * 3600) + (int(mm) * 60) + float(sms)
+                        if not self._duration:
+                            self._duration = (await get_media_info(self.path))[0]
+                        self._processed_bytes = int(progress.get('size', '0').rstrip('kB')) * 1024
+                        self._percentage = f'{round((time_to_second / self._duration) * 100, 2)}%'
+                        try:
+                            self._eta = (self._duration / float(progress.get('speed', '0').strip('x'))) - ((time() - start_time))
+                        except (ValueError, ZeroDivisionError):
+                            pass
+                    except (ValueError, KeyError) as e:
+                        # Log the unexpected format without crashing
+                        LOGGER.warning(f"Failed to parse FFmpeg progress time: {time_str}, Error: {e}")
                 elif status == 'direct':
                     self._processed_bytes = await get_path_size(self.outfile)
                     await sleep(0.5)
                     continue
+
 
 class SampleVideo(FFProgress):
     def __init__(self, listener, duration, partDuration, gid):
