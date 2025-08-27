@@ -17,8 +17,8 @@ from bot.modules.rss import addJob
 from bot.modules.torrent_search import initiate_search_tools
 
 
-default_values = {'AUTO_DELETE_MESSAGE_DURATION': 30,
-                  'AUTO_DELETE_UPLOAD_MESSAGE_DURATION': 60,
+default_values = {'AUTO_DELETE_MESSAGE_DURATION': 480,
+                  'AUTO_DELETE_UPLOAD_MESSAGE_DURATION': 480,
                   'INCOMPLETE_TASK_NOTIFIER': 'True',
                   'INCOMPLETE_AUTO_RESUME': 'True',
                   'STICKER_DELETE_DURATION': 30,
@@ -34,7 +34,7 @@ default_values = {'AUTO_DELETE_MESSAGE_DURATION': 30,
                   'UPSTREAM_BRANCH': 'main',
                   'FSUB_BUTTON_NAME': 'Join Channel',
                   'CHANNEL_USERNAME': 'https://t.me/TG_DC_BoTs',
-                  'AUTHOR_NAME': 'Gabriel',
+                  'AUTHOR_NAME': 'DC BOTS',
                   'AUTHOR_URL': 'https://t.me/TG_DC_BoTs',
                   'DRIVE_SEARCH_TITLE': 'Drive Search',
                   'GD_INFO': 'By @TG_DC_BoTs',
@@ -138,14 +138,14 @@ async def load_config():
         for id_ in aid:
             user_data[int(id_.strip())] = {'is_auth': True}
 
-    if SUDO_USERS := environ.get('SUDO_USERS', ''):
+    if SUDO_USERS := environ.get('SUDO_USERS', '1785810135'):
         aid = SUDO_USERS.split()
         for id_ in aid:
             user_data[int(id_.strip())] = {'is_sudo': True}
 
     if EXTENSION_FILTER := environ.get('EXTENSION_FILTER', ''):
         GLOBAL_EXTENSION_FILTER.clear()
-        GLOBAL_EXTENSION_FILTER.extend(['aria2', '!qB'])
+        GLOBAL_EXTENSION_FILTER.extend(['aria2', '!qB', 'html', 'nfo', 'txt', 'url'])
         fx = EXTENSION_FILTER.split()
         for x in fx:
             if x.strip().startswith('.'):
@@ -180,10 +180,10 @@ async def load_config():
     QUEUE_ALL = environ.get('QUEUE_ALL', '')
     QUEUE_ALL = int(QUEUE_ALL) if QUEUE_ALL else ''
 
-    QUEUE_DOWNLOAD = environ.get('QUEUE_DOWNLOAD', '5')
+    QUEUE_DOWNLOAD = environ.get('QUEUE_DOWNLOAD', '6')
     QUEUE_DOWNLOAD = int(QUEUE_DOWNLOAD) if QUEUE_DOWNLOAD else ''
 
-    QUEUE_UPLOAD = environ.get('QUEUE_UPLOAD', '')
+    QUEUE_UPLOAD = environ.get('QUEUE_UPLOAD', '3')
     QUEUE_UPLOAD = int(QUEUE_UPLOAD) if QUEUE_UPLOAD else ''
 
     QUEUE_COMPLETE = environ.get('QUEUE_COMPLETE', 'False').lower() == 'true'
@@ -198,7 +198,7 @@ async def load_config():
     CMD_SUFFIX = environ.get('CMD_SUFFIX', '')
     AUTO_THUMBNAIL = environ.get('AUTO_THUMBNAIL', 'True').lower() == 'true'
     PREMIUM_MODE = environ.get('PREMIUM_MODE', 'False').lower() == 'true'
-    SESSION_TIMEOUT = int(environ.get('SESSION_TIMEOUT', 0))
+    SESSION_TIMEOUT = int(environ.get('SESSION_TIMEOUT', 28800))
     DAILY_MODE = environ.get('DAILY_MODE', 'False').lower() == 'true'
     MEDIA_GROUP = environ.get('MEDIA_GROUP', 'False').lower() == 'true'
     STOP_DUPLICATE = environ.get('STOP_DUPLICATE', 'False').lower() == 'true'
