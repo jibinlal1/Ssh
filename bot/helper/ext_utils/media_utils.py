@@ -16,17 +16,19 @@ from bot.helper.ext_utils.links_utils import get_url_name
 from bot.helper.ext_utils.status_utils import get_readable_file_size
 from bot.helper.ext_utils.telegraph_helper import TelePost
 
+
 def getSplitSizeBytes(size: str):
     size = size.lower()
     if size.endswith('mb'):
-        size = size.split('mb').strip()
+        size = size.split('mb')[0].strip()
         size = int(float(size) * 1048576)
     elif size.endswith('gb'):
-        size = size.split('gb').strip()
+        size = size.split('gb')[0].strip()
         size = int(float(size) * 1073741824)
     else:
         size = 0
     return size
+
 
 async def createThumb(msg: Message, _id: int=0):
     if not _id:
@@ -39,6 +41,7 @@ async def createThumb(msg: Message, _id: int=0):
     await clean_target(photo_dir)
     return des_dir
 
+
 async def is_multi_streams(path):
     try:
         result = await cmd_exec(['ffprobe', '-hide_banner', '-loglevel', 'error', '-print_format', 'json', '-show_streams', path])
@@ -47,7 +50,7 @@ async def is_multi_streams(path):
     except Exception as e:
         LOGGER.error('Get Video Streams: %s. Mostly File not found!', e)
         return False
-    fields = literal_eval(result).get('streams')
+    fields = literal_eval(result[0]).get('streams')
     if fields is None:
         LOGGER.error('Get Video Streams: %s', result)
         return False
@@ -59,6 +62,7 @@ async def is_multi_streams(path):
             audios += 1
     return videos > 1 or audios > 1
 
+
 async def get_media_info(path):
     try:
         result = await cmd_exec(['ffprobe', '-hide_banner', '-loglevel', 'error', '-print_format', 'json', '-show_format', path])
@@ -67,7 +71,7 @@ async def get_media_info(path):
     except Exception as e:
         LOGGER.error('Get Media Info: %s. Mostly File not found!', e)
         return 0, None, None
-    fields = literal_eval(result).get('format')
+    fields = literal_eval(result[0]).get('format')
     if fields is None:
         LOGGER.error('Get_media_info: %s', result)
         return 0, None, None
@@ -76,6 +80,7 @@ async def get_media_info(path):
     artist = tags.get('artist') or tags.get('ARTIST') or tags.get('Artist')
     title = tags.get('title') or tags.get('TITLE') or tags.get('Title')
     return duration, artist, title
+
 
 async def post_media_info(path: str, size: int, image=None, is_link=False):
     if is_link:
@@ -88,16 +93,17 @@ async def post_media_info(path: str, size: int, image=None, is_link=False):
     img_post = config_dict['IMAGE_MEDINFO']
     if image:
         try:
-            if ipost := (await sync_to_async(telepost.image_post, image)):
+            if ipost := (await sync_to_async(telepost.image_post, image))[0]:
                 img_post = ipost
         except:
             pass
     try:
-        if metadata := (await cmd_exec(['mediainfo', path])).replace(path, name):
+        if metadata := (await cmd_exec(['mediainfo', path]))[0].replace(path, name):
             metadata = f"<img src='{img_post}' /><b>{name}<br>Size: {size}</b><br><pre>{metadata}</pre>"
             return await sync_to_async(telepost.create_post, metadata)
     except Exception as e:
         LOGGER.info(e)
+
 
 async def get_document_type(path):
     is_video = is_audio = is_image = False
@@ -117,7 +123,7 @@ async def get_document_type(path):
     except Exception as e:
         LOGGER.error('Get Document Type: %s. Mostly File not found!', e)
         return is_video, is_audio, is_image
-    fields = literal_eval(result).get('streams')
+    fields = literal_eval(result[0]).get('streams')
     if fields is None:
         LOGGER.error('Get_document_type: %s', result)
         return is_video, is_audio, is_image
@@ -128,9 +134,10 @@ async def get_document_type(path):
             is_audio = True
     return is_video, is_audio, is_image
 
+
 async def take_ss(video_file, ss_nb) -> list:
     ss_nb = min(ss_nb, 10)
-    duration = (await get_media_info(video_file))
+    duration = (await get_media_info(video_file))[0]
     if duration == 0:
         LOGGER.error('Take SS: Can\'t get the duration of video')
         return []
@@ -149,13 +156,14 @@ async def take_ss(video_file, ss_nb) -> list:
         cmds.append(cmd_exec(cmd))
     try:
         results = await wait_for(gather(*cmds), timeout=15)
-        if results[2] != 0:
-            LOGGER.error('Error while creating sreenshots from video. Path: %s. stderr: %s', video_file, results[1])
+        if results[0][2] != 0:
+            LOGGER.error('Error while creating sreenshots from video. Path: %s. stderr: %s', video_file, results[0][1])
             return []
     except:
         LOGGER.error('Error while creating sreenshots from video. Path: %s. Error: Timeout some issues with ffmpeg with specific arch!', video_file)
         return []
     return outputs
+
 
 async def get_audio_thumb(audio_file):
     des_dir = 'thumbnails'
@@ -169,12 +177,13 @@ async def get_audio_thumb(audio_file):
         return None
     return des_dir
 
+
 async def create_thumbnail(video_file, duration):
     des_dir = 'thumbnails'
     await makedirs(des_dir, exist_ok=True)
     des_dir = ospath.join(des_dir, f'{time()}.jpg')
     if duration is None:
-        duration = (await get_media_info(video_file))
+        duration = (await get_media_info(video_file))[0]
     if duration == 0:
         duration = 3
     duration = duration // 2
@@ -188,6 +197,7 @@ async def create_thumbnail(video_file, duration):
         LOGGER.error('Error while extracting thumbnail from video. Name: %s. Error: Timeout some issues with ffmpeg with specific arch!', video_file)
     return des_dir
 
+
 async def split_file(path, size, dirpath, split_size, listener, obj, start_time=0, i=1, inLoop=False, multi_streams=True):
     if listener.seed and not listener.newDir:
         dirpath = ospath.join(dirpath, 'splited_files_mltb')
@@ -198,11 +208,11 @@ async def split_file(path, size, dirpath, split_size, listener, obj, start_time=
     parts = -(-size // leech_split_size)
     if listener.equalSplits and not inLoop:
         split_size = ((size + parts - 1) // parts) + 1000
-    if (await get_document_type(path)):
+    if (await get_document_type(path))[0]:
         if multi_streams:
             multi_streams = await is_multi_streams(path)
         obj.state = 'video'
-        duration = (await get_media_info(path))
+        duration = (await get_media_info(path))[0]
         base_name, extension = ospath.splitext(path)
         split_size -= 5000000
         while i <= parts or start_time < duration - 4:
@@ -233,7 +243,7 @@ async def split_file(path, size, dirpath, split_size, listener, obj, start_time=
                 split_size -= dif + 5000000
                 await clean_target(out_path)
                 return await split_file(path, size, dirpath, split_size, listener, obj, start_time, i, True, )
-            lpd = (await get_media_info(out_path))
+            lpd = (await get_media_info(out_path))[0]
             if lpd == 0:
                 LOGGER.error('Something went wrong while splitting, mostly file is corrupted. Path: %s', path)
                 break
@@ -260,6 +270,7 @@ async def split_file(path, size, dirpath, split_size, listener, obj, start_time=
             LOGGER.error(stderr.decode().strip())
     listener.total_size += await get_path_size(out_path)
     return True
+
 
 class FFProgress:
     def __init__(self):
@@ -306,17 +317,16 @@ class FFProgress:
                 continue
             if progress := dict(re_findall(r'(frame|fps|size|time|bitrate|speed)\s*\=\s*(\S+)', line.decode('utf-8'))):
                 if not self._duration:
-                    self._duration = (await get_media_info(self.path))
-                if 'time' in progress:
-                    hh, mm, sms = progress['time'].split(':')
-                    time_to_second = (int(hh) * 3600) + (int(mm) * 60) + float(sms)
-                    self._processed_bytes = int(progress['size'].rstrip('kB')) * 1024
-                    self._percentage = f'{round((time_to_second / self._duration) * 100, 2)}%'
-                    try:
-                        self._eta = (self._duration / float(progress['speed'].strip('x'))) - ((time() - start_time))
-                    except:
-                        pass
-                # else: skip calculation if no 'time' key
+                    self._duration = (await get_media_info(self.path))[0]
+                hh, mm, sms = progress['time'].split(':')
+                time_to_second = (int(hh) * 3600) + (int(mm) * 60) + float(sms)
+                self._processed_bytes = int(progress['size'].rstrip('kB')) * 1024
+                self._percentage = f'{round((time_to_second / self._duration) * 100, 2)}%'
+                try:
+                    self._eta = (self._duration / float(progress['speed'].strip('x'))) - ((time() - start_time))
+                except:
+                    pass
+
 
 class SampleVideo(FFProgress):
     def __init__(self, listener, duration, partDuration, gid):
@@ -337,7 +347,7 @@ class SampleVideo(FFProgress):
         dir, name = video_file.rsplit('/', 1)
         self.outfile = ospath.join(dir, f'SAMPLE.{name}')
         segments = [(0, self._partduration)]
-        duration = (await get_media_info(video_file))
+        duration = (await get_media_info(video_file))[0]
         remaining_duration = duration - (self._partduration * 2)
         parts = (self._duration - (self._partduration * 2)) // self._partduration
         time_interval = remaining_duration // parts
@@ -379,17 +389,18 @@ class SampleVideo(FFProgress):
         LOGGER.error('%s. Something went wrong while creating sample video, mostly file is corrupted. Path: %s', (await self.listener.suproc.stderr.read()).decode().strip(), video_file)
         return video_file
 
+
 async def createArchive(listener, scr_path, dest_path, size, pswd, mpart=False):
     cmd = ['7z', f'-v{listener.splitSize}b', 'a', '-mx=0', f'-p{pswd}', dest_path, scr_path]
     cmd.extend(f'-xr!*.{ext}' for ext in listener.extensionFilter)
     if listener.isLeech and int(size) > listener.splitSize or mpart and int(size) > listener.splitSize:
         if not pswd:
-            del cmd[3]
+            del cmd[4]
         LOGGER.info('Zip: orig_path: %s, zip_path: %s.0*', scr_path, dest_path)
     else:
         del cmd[1]
         if not pswd:
-            del cmd[4]
+            del cmd[3]
         LOGGER.info('Zip: orig_path: %s, zip_path: %s', scr_path, dest_path)
     async with subprocess_lock:
         if listener.suproc == 'cancelled':
@@ -405,6 +416,7 @@ async def createArchive(listener, scr_path, dest_path, size, pswd, mpart=False):
         return True
     LOGGER.error('%s. Unable to zip this path: %s', stderr.decode().strip(), scr_path)
     return True
+
 
 class GenSS:
     def __init__(self, message, path):
@@ -447,7 +459,7 @@ class GenSS:
 
     async def file_ss(self):
         min_dur, max_photo = 5, 10
-        duration = (await get_media_info(self._path))
+        duration = (await get_media_info(self._path))[0]
         if not duration:
             self._error = 'Failed fetch info from url, something wrong with url or not video in url!'
             return
