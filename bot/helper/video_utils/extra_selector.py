@@ -157,7 +157,6 @@ class ExtraSelect:
         buttons.button_data('Continue', 'extra swap_continue', 'footer')
         buttons.button_data('Cancel', 'extra cancel', 'footer')
         
-        text += f'\n<i>Time Out: {get_readable_time(180 - (time()-self._time))}</i>'
         await self.update_message(text, buttons.build_menu(2))
 
     async def _select_swap_position(self, selected_stream_index: int, total_streams: int):
@@ -277,14 +276,15 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             
             # The remaps dictionary is in self.executor.data
             remaps = obj.executor.data.get('remaps', {})
-            
-            # Use a check to prevent mapping to the same position twice
+
+            # Check if the new position is already taken by a stream from the reorders dict
             if new_position in remaps.values():
                 await query.answer(f"Position {new_position} is already taken. Please choose another position.", show_alert=True)
                 obj.swap_selection['selected_stream'] = old_stream_index
-                await obj._select_swap_position(old_stream_index, len([s for s in obj.executor.data['streams'] if s['codec_type'] == 'audio']))
+                total_streams = len([s for s in obj.executor.data['streams'] if s['codec_type'] == 'audio'])
+                await obj._select_swap_position(old_stream_index, total_streams)
                 return
-            
+
             remaps[old_stream_index] = new_position
             obj.executor.data['remaps'] = remaps # Update the remaps dictionary in executor.data
             
