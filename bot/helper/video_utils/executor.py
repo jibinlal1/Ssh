@@ -625,7 +625,7 @@ class VidEcxecutor(FFProgress):
                 fontsize = f',FontSize={fontsize}' if (fontsize := kwargs.get('fontsize') or config_dict['HARDSUB_FONT_SIZE']) else ''
                 fontcolour = f',PrimaryColour=&H{kwargs["fontcolour"]}' if kwargs.get('fontcolour') else ''
                 boldstyle = ',Bold=1' if kwargs.get('boldstyle') else ''
-                hardusb = f",subtitles='{self._files[1]}':force_style='FontName={fontname},Shadow=1.5{fontsize}{fontcolour}{boldstyle}'{quality},unsharp,eq=contrast=1.07"
+                hardusb = f",subtitles='{self._files[1]}':force_style='FontName={fontname},Shadow=1.5{fontsize}{fontcolour}{boldstyle}',unsharp,eq=contrast=1.07"
 
                 quality = f',scale={self._qual[kwargs["quality"]]}:-2' if kwargs.get('quality') else ''
                 
@@ -664,48 +664,61 @@ class VidEcxecutor(FFProgress):
             streams = self._metadata[0]
         else:
             main_video = file_list[0]
-            base_dir, (streams, _), self.size = await gather(self._name_base_dir(main_video, 'Swap', multi), 
+            base_dir, (streams, _), self.size = await gather(self._name_base_dir(main_video, 'Swap', multi),
                                                              get_metavideo(main_video), get_path_size(main_video))
-
+        
         self._start_handler(streams)
         await gather(self._send_status(), self.event.wait())
         await self._queue()
+        
         if self.is_cancel:
             return
 
-        if not self.data or len(self.data['sdata']) < 2:
-            await self.listener.onUploadError('You must select exactly two streams to swap!')
-            return
-
-        stream1_idx = self.data['sdata'][0]
-        stream2_idx = self.data['sdata'][1]
-
+        reorders = self.data.get('remaps', {})
+        
         self.outfile = self._up_path
         for file in file_list:
             self.path = file
             if not self._metadata:
-                _, self.size = await gather(self._name_base_dir(self.path, f'Swap', multi), get_path_size(self.path))
-
+                _, self.size = await gather(self._name_base_dir(self.path, 'Swap', multi), get_path_size(self.path))
+            
             self.outfile = ospath.join(base_dir, self.name)
             self._files.append(self.path)
-
-            # Dynamically build the FFmpeg command
+            
             cmd = [FFMPEG_NAME, '-y', '-i', self.path]
             map_args = []
             
-            # Reorder the maps
-            for stream in streams:
-                current_index = stream['index']
-                if current_index == stream1_idx:
-                    map_args.extend(['-map', f'0:{stream2_idx}'])
-                elif current_index == stream2_idx:
-                    map_args.extend(['-map', f'0:{stream1_idx}'])
-                else:
-                    map_args.extend(['-map', f'0:{current_index}'])
+            # Reorder streams based on the user's choices, keep original position for others.
+            mapped_indices = set(reorders.values())
+            
+            stream_maps = {}
+            # Step 1: Map streams that are being reordered
+            for original_index, new_position in reorders.items():
+                stream_maps[new_position] = original_index
+            
+            # Step 2: Map streams that are NOT being reordered
+            current_position = 1
+            for s in streams:
+                if s['codec_type'] in ['audio', 'subtitle'] and s['index'] not in reorders:
+                    while current_position in mapped_indices:
+                        current_position += 1
+                    stream_maps[current_position] = s['index']
+                    mapped_indices.add(current_position)
+                    current_position += 1
 
+            # Step 3: Build the final map arguments
+            for new_pos in sorted(stream_maps.keys()):
+                original_index = stream_maps[new_pos]
+                map_args.extend(['-map', f'0:{original_index}'])
+
+            # Add video stream mapping (assuming one video stream)
+            video_stream = next((s for s in streams if s['codec_type'] == 'video'), None)
+            if video_stream:
+                map_args.extend(['-map', f'0:{video_stream['index']}'])
+            
             cmd.extend(map_args)
             cmd.extend(['-c', 'copy', self.outfile])
-
+            
             await self._run_cmd(cmd)
             if self.is_cancel:
                 return
