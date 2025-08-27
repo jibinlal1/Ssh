@@ -3,7 +3,7 @@ from asyncio import sleep
 from pyrogram import Client
 from pyrogram.filters import command
 from pyrogram.handlers import MessageHandler
-from pyrogram.types import Message
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from secrets import token_urlsafe
 
 from bot import bot, config_dict, LOGGER
