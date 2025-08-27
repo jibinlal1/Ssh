@@ -150,17 +150,17 @@ class ExtraSelect:
         
         reordered_streams = self.executor.data.get('remaps', {})
         
-        text += "<b>Current Stream Order:</b>\n"
+        text += "<b>Current Audio Order:</b>\n"
         for s in all_streams:
             lang = s.get('tags', {}).get('language', f'#{s.get("index")}')
             new_pos = reordered_streams.get(s['index'], s['index'])
-            text += f"{s['codec_type'].title()} Stream {s['index']} ({lang.upper()}) -> New Position: {new_pos}\n"
+            text += f"Audio {s['index']} ({lang.title()}) -> {new_pos}\n"
 
-        text += "\n<b>Select an audio stream to reorder:</b>\n"
+        text += "\n<b>Select An Audio Stream To Reorder:</b>\n"
 
         for s in all_streams:
             lang = s.get('tags', {}).get('language', f'#{s.get("index")}')
-            button_text = f"✓ {s['codec_type'].title()} ({s['index']}) ({lang.upper()})" if s['index'] in reordered_streams else f"{s['codec_type'].title()} ({s['index']}) ({lang.upper()})"
+            button_text = f"✓ Audio ({s['index']}) ({lang.title()})" if s['index'] in reordered_streams else f"Audio ({s['index']}) ({lang.title()})"
             buttons.button_data(button_text, f"extra swap_stream_select {s['index']}")
         
         buttons.button_data('Cancel', 'extra cancel', 'footer')
@@ -293,7 +293,7 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                 return
 
             new_position = int(data[2])
-            obj.swap_selection['selected_stream'] = None
+            obj.swap_selection.pop('selected_stream')
             
             remaps = obj.executor.data.get('remaps', {})
 
