@@ -130,7 +130,7 @@ class ExtraSelect:
         await self.update_message(*self._streams_select(streams))
     
     async def swap_stream_select(self, streams: dict):
-        self.executor.data = {'sdata': [], 'streams': streams}
+        self.executor.data = {'sdata': [], 'streams': streams, 'remaps': {}}
         buttons = ButtonMaker()
         text = (f"<b>SWAP STREAM SETTINGS ~ {self._listener.tag}</b>\n"
                 f"<code>{self.executor.name}</code>\n"
@@ -164,18 +164,31 @@ class ExtraSelect:
         text = (f"<b>SWAP STREAM SETTINGS ~ {self._listener.tag}</b>\n"
                 f"<code>{self.executor.name}</code>\n"
                 f"File Size: <b>{get_readable_file_size(self.executor.size)}</b>\n\n"
-                f"Selected: {self.swap_selection['streams']}\n")
+                f"Select a stream from the list below.\n")
 
         for s in streams:
             lang = s.get('tags', {}).get('language', f'#{s.get("index")}')
             buttons.button_data(f"Stream {s['index']} ({lang.upper()})", f"extra swap_stream {s['index']}")
         
-        buttons.button_data('Back', f"extra swap_select {self.swap_selection['mode']}", 'footer')
-        buttons.button_data('Cancel', 'extra cancel', 'footer')
-        buttons.button_data('Continue', 'extra swap_continue', 'footer')
+        buttons.button_data('Back', 'extra swap_back')
+        buttons.button_data('Cancel', 'extra cancel')
         
-        text += f'Select two streams to swap:\n\n<i>Time Out: {get_readable_time(180 - (time()-self._time))}</i>'
+        await self.update_message(text, buttons.build_menu(2))
+
+    async def _select_swap_position(self, selected_stream_index: int, total_streams: int):
+        buttons = ButtonMaker()
+        text = (f"<b>SWAP STREAM SETTINGS ~ {self._listener.tag}</b>\n"
+                f"<code>{self.executor.name}</code>\n"
+                f"Selected Stream: {selected_stream_index}\n\n"
+                f"Select the new position for this stream:")
+
+        for i in range(1, total_streams + 1):
+            buttons.button_data(str(i), f"extra swap_position {i}")
+        
+        buttons.button_data('Cancel', 'extra cancel', 'footer')
+        
         await self.update_message(text, buttons.build_menu(5))
+
 
     async def convert_select(self, streams: dict):
         buttons = ButtonMaker()
@@ -277,11 +290,12 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             text = (f"<b>SWAP STREAM SETTINGS ~ {obj._listener.tag}</b>\n"
                     f"<code>{obj.executor.name}</code>\n"
                     f"File Size: <b>{get_readable_file_size(obj.executor.size)}</b>\n\n"
-                    f"Selected: {obj.swap_selection['streams']}\n\n")
+                    f"Selected Streams: {obj.swap_selection['streams']}\n")
 
             for s in stream_data:
                 lang = s.get('tags', {}).get('language', f'#{s.get("index")}')
-                buttons.button_data(f"{lang.upper()} ({s['index']})", f"extra swap_stream {s['index']}")
+                button_text = f"✓ {lang.upper()} ({s['index']})" if s['index'] in obj.swap_selection['streams'] else f"{lang.upper()} ({s['index']})"
+                buttons.button_data(button_text, f"extra swap_stream {s['index']}")
             
             buttons.button_data('Back', 'extra swap_back')
             buttons.button_data('Cancel', 'extra cancel')
@@ -299,7 +313,7 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             else:
                 obj.swap_selection['streams'].append(stream_index)
                 await query.answer(f"Selected stream {stream_index}", show_alert=True)
-
+                
             text = (f"<b>SWAP STREAM SETTINGS ~ {obj._listener.tag}</b>\n"
                     f"<code>{obj.executor.name}</code>\n"
                     f"File Size: <b>{get_readable_file_size(obj.executor.size)}</b>\n\n"
@@ -314,9 +328,9 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                 button_text = f"✓ {lang.upper()} ({s['index']})" if s['index'] in obj.swap_selection['streams'] else f"{lang.upper()} ({s['index']})"
                 buttons.button_data(button_text, f"extra swap_stream {s['index']}")
             
-            buttons.button_data('Back', 'extra swap_select ' + mode)
-            buttons.button_data('Cancel', 'extra cancel')
-            buttons.button_data('Continue', 'extra swap_continue')
+            buttons.button_data('Back', f'extra swap_select {mode}', 'footer')
+            buttons.button_data('Cancel', 'extra cancel', 'footer')
+            buttons.button_data('Continue', 'extra swap_continue', 'footer')
 
             await editMessage(text, query.message, buttons.build_menu(2))
 
