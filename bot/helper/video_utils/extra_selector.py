@@ -138,7 +138,7 @@ class ExtraSelect:
         await self.update_message(*self._streams_select(streams))
     
     async def swap_stream_select(self, streams: dict):
-        self.executor.data = {'streams': streams, 'remaps': self.swap_selection['remaps'], 'selected_stream': self.swap_selection['selected_stream']}
+        self.executor.data.update({'streams': streams, 'remaps': self.swap_selection['remaps']})
         self.set_default_audio_stream(streams)
         buttons = ButtonMaker()
         
@@ -293,7 +293,6 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                 return
 
             new_position = int(data[2])
-            # Fix: reset instead of removing the key to avoid KeyError
             obj.swap_selection['selected_stream'] = None
             
             remaps = obj.executor.data.get('remaps', {})
