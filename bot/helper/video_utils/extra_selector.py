@@ -156,11 +156,11 @@ class ExtraSelect:
             if s['codec_type'] in ['audio', 'subtitle']:
                 stream_buttons.append(InlineKeyboardButton(str(s['index']), f"extra swap_stream {s['index']}"))
         
-        # Use button_data instead of the non-existent add_button
+        # Changed this part to use the existing button_data function
         for b in stream_buttons:
             buttons.button_data(b.text, b.callback_data)
 
-        buttons.button_data('Cancel', f'extra cancel', 'footer')
+        buttons.button_data('Cancel', 'extra cancel', 'footer')
         
         text += f'Select stream to swap:\n\n<i>Time Out: {get_readable_time(180 - (time()-self._time))}</i>'
         await self.update_message(text, buttons.build_menu(5))
