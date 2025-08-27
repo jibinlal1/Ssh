@@ -138,6 +138,8 @@ class ExtraSelect:
         await self.update_message(*self._streams_select(streams))
     
     async def swap_stream_select(self, streams: dict):
+        if not self.executor.data:
+            self.executor.data = {}
         self.executor.data.update({'streams': streams, 'remaps': self.swap_selection['remaps']})
         self.set_default_audio_stream(streams)
         buttons = ButtonMaker()
