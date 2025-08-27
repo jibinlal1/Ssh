@@ -86,7 +86,8 @@ VID_MODE = {'vid_vid': 'Video + Video',
             'watermark': 'Watermark',
             'extract': 'Extract',
             'trim': 'Trim',
-            'rmstream': 'Remove Stream'}
+            'rmstream': 'Remove Stream',
+            'swap_stream': 'Swap Stream'}
 
 DEFAULT_SPLIT_SIZE = 2097151000
 ARIA_NAME = environ.get('ARIA_NAME', 'huntria')
@@ -642,6 +643,7 @@ config_dict = {'BOT_TOKEN': BOT_TOKEN,
                'IMAGE_BYE': IMAGE_BYE,
                'IMAGE_CANCEL': IMAGE_CANCEL,
                'IMAGE_CAPTION': IMAGE_CAPTION,
+               'IMAGE_COMMONS_CHECK': IMAGE_COMMONS_CHECK,
                'IMAGE_COMPLETE': IMAGE_COMPLETE,
                'IMAGE_CONEDIT': IMAGE_CONEDIT,
                'IMAGE_CONPRIVATE': IMAGE_CONPRIVATE,
@@ -684,7 +686,6 @@ config_dict = {'BOT_TOKEN': BOT_TOKEN,
                'IMAGE_WIBU': IMAGE_WIBU,
                'IMAGE_YT': IMAGE_YT,
                'IMAGE_ZIP': IMAGE_ZIP,
-               'IMAGE_COMMONS_CHECK': IMAGE_COMMONS_CHECK,
                # ACCOUNTS
                'JD_EMAIL': JD_EMAIL,
                'JD_PASS': JD_PASS,
