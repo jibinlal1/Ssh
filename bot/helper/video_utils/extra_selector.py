@@ -163,8 +163,8 @@ class ExtraSelect:
             button_text = f"✓ {s['codec_type'].title()} ({s['index']}) ({lang.upper()})" if s['index'] in reordered_streams else f"{s['codec_type'].title()} ({s['index']}) ({lang.upper()})"
             buttons.button_data(button_text, f"extra swap_stream_select {s['index']}")
         
-        buttons.button_data('Continue', 'extra swap_continue', 'footer')
         buttons.button_data('Cancel', 'extra cancel', 'footer')
+        buttons.button_data('Continue ✓', 'extra swap_continue', 'footer')
         
         await self.update_message(text, buttons.build_menu(2))
 
