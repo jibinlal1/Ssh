@@ -25,6 +25,7 @@ class ExtraSelect:
         self.is_cancel = False
         self.extension: list[str] = [None, None, 'mkv']
         self.status = ''
+        self.swap_selection = {'mode': None, 'streams': []}
 
     @new_thread
     async def _event_handler(self):
@@ -129,21 +130,20 @@ class ExtraSelect:
         await self.update_message(*self._streams_select(streams))
     
     async def swap_stream_select(self, streams: dict):
-        self.executor.data = {'sdata': []} # Reset data for a new swap session
+        self.executor.data = {'sdata': [], 'streams': streams}
         buttons = ButtonMaker()
         text = (f"<b>SWAP STREAM SETTINGS ~ {self._listener.tag}</b>\n"
                 f"<code>{self.executor.name}</code>\n"
                 f"File Size: <b>{get_readable_file_size(self.executor.size)}</b>\n\n")
 
-        all_streams = []
         audio_streams = [s for s in streams if s['codec_type'] == 'audio']
         if audio_streams:
             text += "<b>Audio Stream Position</b>\n"
             for s in audio_streams:
                 lang = s.get('tags', {}).get('language', f'#{s.get("index")}')
                 text += f"{s['index']}. {lang.upper()}\n"
-                all_streams.append(s)
             text += "\n"
+            buttons.button_data("Audio", "extra swap_select audio")
 
         subtitle_streams = [s for s in streams if s['codec_type'] == 'subtitle']
         if subtitle_streams:
@@ -151,19 +151,13 @@ class ExtraSelect:
             for s in subtitle_streams:
                 lang = s.get('tags', {}).get('language', f'#{s.get("index")}')
                 text += f"{s['index']}. {lang.upper()}\n"
-                all_streams.append(s)
             text += "\n"
+            buttons.button_data("Subtitle", "extra swap_select subtitle")
 
-        # Build buttons for each stream
-        for s in all_streams:
-            buttons.button_data(f"Stream {s['index']} ({s['codec_type'].title()})", f"extra swap_stream {s['index']}")
-        
-        # Add continue and cancel buttons
-        buttons.button_data('Continue', f'extra swap_continue')
         buttons.button_data('Cancel', f'extra cancel')
         
-        text += f'Select two streams to swap:\n\n<i>Time Out: {get_readable_time(180 - (time()-self._time))}</i>'
-        await self.update_message(text, buttons.build_menu(5))
+        text += f'Select stream type to swap:\n\n<i>Time Out: {get_readable_time(180 - (time()-self._time))}</i>'
+        await self.update_message(text, buttons.build_menu(2))
 
     async def convert_select(self, streams: dict):
         buttons = ButtonMaker()
@@ -255,31 +249,73 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             obj.is_cancel = obj.executor.is_cancel = True
             obj.executor.data = None
             obj.event.set()
+        case 'swap_select':
+            await query.answer()
+            mode = data[2]
+            buttons = ButtonMaker()
+            
+            stream_data = [s for s in obj.executor.data['streams'] if s['codec_type'] == mode]
+            
+            text = (f"<b>SWAP STREAM SETTINGS ~ {obj._listener.tag}</b>\n"
+                    f"<code>{obj.executor.name}</code>\n"
+                    f"File Size: <b>{get_readable_file_size(obj.executor.size)}</b>\n\n"
+                    f"Select a stream from the list below.\n"
+                    f"Selected: {obj.swap_selection['streams']}\n\n")
+
+            for s in stream_data:
+                lang = s.get('tags', {}).get('language', f'#{s.get("index")}')
+                buttons.button_data(f"{lang.upper()} ({s['index']})", f"extra swap_stream {s['index']}")
+
+            buttons.button_data('Back', 'extra swap_back')
+            buttons.button_data('Cancel', 'extra cancel')
+            buttons.button_data('Continue', 'extra swap_continue')
+            
+            obj.swap_selection['mode'] = mode
+            await editMessage(text, query.message, buttons.build_menu(2))
+
         case 'swap_stream':
             stream_index = int(data[2])
             
-            # Use a check to prevent selecting the same stream twice
-            if stream_index in obj.executor.data['sdata']:
-                await query.answer("You have already selected this stream. Please choose another one.", show_alert=True)
-                return
-            
-            obj.executor.data.setdefault('sdata', []).append(stream_index)
+            if stream_index in obj.swap_selection['streams']:
+                obj.swap_selection['streams'].remove(stream_index)
+                await query.answer(f"Deselected stream {stream_index}", show_alert=True)
+            else:
+                obj.swap_selection['streams'].append(stream_index)
+                await query.answer(f"Selected stream {stream_index}", show_alert=True)
 
-            if len(obj.executor.data['sdata']) == 1:
-                # First stream selected, prompt for the second
-                selected_stream_type = "audio" if obj.streams_data[stream_index]['codec_type'] == 'audio' else "subtitle"
-                await query.answer(f"Selected stream {stream_index} ({selected_stream_type}). Select the second stream to swap.", show_alert=True)
-                await editMessage(f"Selected stream {stream_index} ({selected_stream_type}). Select the second stream to swap:", query.message)
-            elif len(obj.executor.data['sdata']) == 2:
-                # Both streams selected, proceed with the swap
-                await query.answer('Streams selected! Starting the swap process.', show_alert=True)
-                obj.event.set()
+            text = (f"<b>SWAP STREAM SETTINGS ~ {obj._listener.tag}</b>\n"
+                    f"<code>{obj.executor.name}</code>\n"
+                    f"File Size: <b>{get_readable_file_size(obj.executor.size)}</b>\n\n"
+                    f"Selected streams: {obj.swap_selection['streams']}\n")
+
+            buttons = ButtonMaker()
+            mode = obj.swap_selection['mode']
+            stream_data = [s for s in obj.executor.data['streams'] if s['codec_type'] == mode]
+
+            for s in stream_data:
+                lang = s.get('tags', {}).get('language', f'#{s.get("index")}')
+                button_text = f"✓ {lang.upper()} ({s['index']})" if s['index'] in obj.swap_selection['streams'] else f"{lang.upper()} ({s['index']})"
+                buttons.button_data(button_text, f"extra swap_stream {s['index']}")
+            
+            buttons.button_data('Back', 'extra swap_select ' + mode)
+            buttons.button_data('Cancel', 'extra cancel')
+            buttons.button_data('Continue', 'extra swap_continue')
+
+            await editMessage(text, query.message, buttons.build_menu(2))
+
+        case 'swap_back':
+            await query.answer()
+            obj.swap_selection = {'mode': None, 'streams': []}
+            await obj.swap_stream_select(obj.executor.data['streams'])
+
         case 'swap_continue':
-            if len(obj.executor.data.get('sdata', [])) != 2:
+            if len(obj.swap_selection['streams']) != 2:
                 await query.answer('You must select exactly two streams to continue!', show_alert=True)
             else:
+                obj.executor.data['sdata'] = obj.swap_selection['streams']
                 await query.answer('Starting the swap process.', show_alert=True)
                 obj.event.set()
+        
         case 'subsync':
             if data[2].isdigit():
                 obj.status = int(data[2])
