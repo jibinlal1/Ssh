@@ -688,33 +688,41 @@ class VidEcxecutor(FFProgress):
             cmd = [FFMPEG_NAME, '-y', '-i', self.path]
             map_args = []
             
-            # Reorder streams based on the user's choices, keep original position for others.
-            mapped_indices = set(reorders.values())
-            
-            stream_maps = {}
-            # Step 1: Map streams that are being reordered
-            for original_index, new_position in reorders.items():
-                stream_maps[new_position] = original_index
-            
-            # Step 2: Map streams that are NOT being reordered
-            current_position = 1
-            for s in streams:
-                if s['codec_type'] in ['audio', 'subtitle'] and s['index'] not in reorders:
-                    while current_position in mapped_indices:
-                        current_position += 1
-                    stream_maps[current_position] = s['index']
-                    mapped_indices.add(current_position)
-                    current_position += 1
-
-            # Step 3: Build the final map arguments
-            for new_pos in sorted(stream_maps.keys()):
-                original_index = stream_maps[new_pos]
-                map_args.extend(['-map', f'0:{original_index}'])
-
-            # Add video stream mapping (assuming one video stream)
+            # Map video stream first to ensure it's always the primary stream
             video_stream = next((s for s in streams if s['codec_type'] == 'video'), None)
             if video_stream:
                 map_args.extend(['-map', f'0:{video_stream["index"]}'])
+
+            # Create a dictionary to hold all streams in their desired output order
+            output_streams = {video_stream["index"]: True} if video_stream else {}
+            
+            # Populate the output_streams dictionary with reordered audio and subtitle streams
+            all_audios = sorted([s for s in streams if s['codec_type'] == 'audio'], key=lambda s: s['index'])
+            all_subs = sorted([s for s in streams if s['codec_type'] == 'subtitle'], key=lambda s: s['index'])
+            
+            audio_indices = [s['index'] for s in all_audios]
+            sub_indices = [s['index'] for s in all_subs]
+            
+            remapped_audios = {new_pos: old_idx for old_idx, new_pos in reorders.items() if old_idx in audio_indices}
+            
+            # Add reordered audio streams
+            for new_pos in sorted(remapped_audios.keys()):
+                original_index = remapped_audios[new_pos]
+                if original_index not in output_streams:
+                    output_streams[original_index] = True
+                    map_args.extend(['-map', f'0:{original_index}'])
+
+            # Add remaining audio streams not in reorders
+            for s in all_audios:
+                if s['index'] not in reorders and s['index'] not in output_streams:
+                    output_streams[s['index']] = True
+                    map_args.extend(['-map', f'0:{s["index"]}'])
+            
+            # Add remaining subtitle streams
+            for s in all_subs:
+                if s['index'] not in output_streams:
+                    output_streams[s['index']] = True
+                    map_args.extend(['-map', f'0:{s["index"]}'])
             
             cmd.extend(map_args)
             cmd.extend(['-c', 'copy', self.outfile])
