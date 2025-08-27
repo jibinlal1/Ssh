@@ -105,6 +105,8 @@ class VidEcxecutor(FFProgress):
                     return await self._subsync(**kwargs)
                 case 'rmstream':
                     return await self._rm_stream()
+                case 'swap_stream':
+                    return await self._swap_streams()
                 case 'extract':
                     return await self._vid_extract()
                 case _:
@@ -623,8 +625,10 @@ class VidEcxecutor(FFProgress):
                 fontsize = f',FontSize={fontsize}' if (fontsize := kwargs.get('fontsize') or config_dict['HARDSUB_FONT_SIZE']) else ''
                 fontcolour = f',PrimaryColour=&H{kwargs["fontcolour"]}' if kwargs.get('fontcolour') else ''
                 boldstyle = ',Bold=1' if kwargs.get('boldstyle') else ''
-                quality = f',scale={self._qual[kwargs["quality"]]}:-2' if kwargs.get('quality') else ''
+                hardusb = f",subtitles='{self._files[1]}':force_style='FontName={fontname},Shadow=1.5{fontsize}{fontcolour}{boldstyle}'{quality},unsharp,eq=contrast=1.07"
 
+                quality = f',scale={self._qual[kwargs["quality"]]}:-2' if kwargs.get('quality') else ''
+                
                 cmd.append(f"subtitles='{self._files[1]}':force_style='FontName={fontname},Shadow=1.5{fontsize}{fontcolour}{boldstyle}'{quality},unsharp,eq=contrast=1.07")
 
                 if config_dict['VIDTOOLS_FAST_MODE']:
@@ -632,7 +636,7 @@ class VidEcxecutor(FFProgress):
                     extra = ['-map', '0:a:?', '-c:a', 'copy']
                 else:
                     cmd.extend(('-preset', config_dict['LIB265_PRESET'], '-c:v', 'libx265', '-pix_fmt', 'yuv420p10le', '-crf', '24',
-                                '-profile:v', 'main10', '-x265-params', 'no-info=1', '-bsf:v', 'filter_units=remove_types=6'))
+                                 '-profile:v', 'main10', '-x265-params', 'no-info=1', '-bsf:v', 'filter_units=remove_types=6'))
                     extra = ['-c:a', 'aac', '-b:a', '160k', '-map', '0:1']
                 cmd.extend(['-map', '0:v:0?', '-map', '-0:s'] + extra + [self.outfile])
             else:
@@ -643,6 +647,66 @@ class VidEcxecutor(FFProgress):
                     cmd.extend(('-map', f'{j}:s'))
                 cmd.extend(('-c:v', 'copy', '-c:a', 'copy', '-c:s', 'srt', self.outfile))
             await self._run_cmd(cmd, status)
+            if self.is_cancel:
+                return
+
+        return await self._final_path()
+
+    async def _swap_streams(self):
+        file_list = await self._get_files()
+        multi = len(file_list) > 1
+        if not file_list:
+            return self._up_path
+
+        if self._metadata:
+            base_dir = self.listener.dir
+            await makedirs(base_dir, exist_ok=True)
+            streams = self._metadata[0]
+        else:
+            main_video = file_list[0]
+            base_dir, (streams, _), self.size = await gather(self._name_base_dir(main_video, 'Swap', multi), 
+                                                             get_metavideo(main_video), get_path_size(main_video))
+
+        self._start_handler(streams)
+        await gather(self._send_status(), self.event.wait())
+        await self._queue()
+        if self.is_cancel:
+            return
+
+        if not self.data or len(self.data['sdata']) < 2:
+            await self.listener.onUploadError('You must select exactly two streams to swap!')
+            return
+
+        stream1_idx = self.data['sdata'][0]
+        stream2_idx = self.data['sdata'][1]
+
+        self.outfile = self._up_path
+        for file in file_list:
+            self.path = file
+            if not self._metadata:
+                _, self.size = await gather(self._name_base_dir(self.path, f'Swap', multi), get_path_size(self.path))
+
+            self.outfile = ospath.join(base_dir, self.name)
+            self._files.append(self.path)
+
+            # Dynamically build the FFmpeg command
+            cmd = [FFMPEG_NAME, '-y', '-i', self.path]
+            map_args = []
+            
+            # Reorder the maps
+            for stream in streams:
+                current_index = stream['index']
+                if current_index == stream1_idx:
+                    map_args.extend(['-map', f'0:{stream2_idx}'])
+                elif current_index == stream2_idx:
+                    map_args.extend(['-map', f'0:{stream1_idx}'])
+                else:
+                    map_args.extend(['-map', f'0:{current_index}'])
+
+            cmd.extend(map_args)
+            cmd.extend(['-c', 'copy', self.outfile])
+
+            await self._run_cmd(cmd)
             if self.is_cancel:
                 return
 
