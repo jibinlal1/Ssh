@@ -218,7 +218,7 @@ async def split_file(path, size, dirpath, split_size, listener, obj, start_time=
         while i <= parts or start_time < duration - 4:
             out_path = f"{base_name}.part{i:03}{extension}"
             cmd = [FFMPEG_NAME, '-hide_banner', '-loglevel', 'error', '-ss', str(start_time), '-i', path, '-fs', str(split_size),
-                   '-map', '0', '-map_chapters', '-1', '-async', '1', '-strict', '-2', '-c', 'copy', out_path]
+                    '-map', '0', '-map_chapters', '-1', '-async', '1', '-strict', '-2', '-c', 'copy', out_path]
             if not multi_streams:
                 del cmd[10:12]
             async with subprocess_lock:
@@ -311,22 +311,29 @@ class FFProgress:
         async for line in self.readlines(self.listener.suproc.stderr):
             if self.is_cancel or self.listener.suproc == 'cancelled' or self.listener.suproc.returncode is not None:
                 return
-            if status == 'direct':
-                self._processed_bytes = await get_path_size(self.outfile)
-                await sleep(0.5)
-                continue
+            
+            # Check if progress information is present in the line
             if progress := dict(re_findall(r'(frame|fps|size|time|bitrate|speed)\s*\=\s*(\S+)', line.decode('utf-8'))):
-                if not self._duration:
-                    self._duration = (await get_media_info(self.path))[0]
-                hh, mm, sms = progress['time'].split(':')
-                time_to_second = (int(hh) * 3600) + (int(mm) * 60) + float(sms)
-                self._processed_bytes = int(progress['size'].rstrip('kB')) * 1024
-                self._percentage = f'{round((time_to_second / self._duration) * 100, 2)}%'
-                try:
-                    self._eta = (self._duration / float(progress['speed'].strip('x'))) - ((time() - start_time))
-                except:
-                    pass
-
+                
+                # Use .get() to safely access 'time' or check for its existence
+                if 'time' in progress:
+                    # Your original logic here
+                    if not self._duration:
+                        self._duration = (await get_media_info(self.path))[0]
+                    hh, mm, sms = progress['time'].split(':')
+                    time_to_second = (int(hh) * 3600) + (int(mm) * 60) + float(sms)
+                    self._processed_bytes = int(progress['size'].rstrip('kB')) * 1024
+                    self._percentage = f'{round((time_to_second / self._duration) * 100, 2)}%'
+                    try:
+                        self._eta = (self._duration / float(progress['speed'].strip('x'))) - ((time() - start_time))
+                    except:
+                        pass
+                
+                # Handles the 'direct' status as an alternative
+                elif status == 'direct':
+                    self._processed_bytes = await get_path_size(self.outfile)
+                    await sleep(0.5)
+                    continue
 
 class SampleVideo(FFProgress):
     def __init__(self, listener, duration, partDuration, gid):
@@ -367,7 +374,7 @@ class SampleVideo(FFProgress):
         filter_complex += f"concat=n={len(segments)}:v=1:a=1[vout][aout]"
 
         cmd = [FFMPEG_NAME, '-hide_banner', '-i', video_file, '-filter_complex', filter_complex, '-map', '[vout]',
-               '-map', '[aout]', '-c:v', 'libx264', '-c:a', 'aac', '-threads', f'{cpu_count()//2}', self.outfile]
+                '-map', '[aout]', '-c:v', 'libx264', '-c:a', 'aac', '-threads', f'{cpu_count()//2}', self.outfile]
 
         if self.listener.suproc == 'cancelled':
             return False
