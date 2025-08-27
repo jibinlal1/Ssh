@@ -268,15 +268,13 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             await query.answer()
             stream_index = int(data[2])
             obj.swap_selection['selected_stream'] = stream_index
-            
-            # Count only the streams that are audio or subtitle
             total_streams = len([s for s in obj.executor.data['streams'] if s['codec_type'] in ['audio', 'subtitle']])
             await obj._select_swap_position(stream_index, total_streams)
         case 'swap_position':
             await query.answer()
             new_position = int(data[2])
             old_stream_index = obj.swap_selection.pop('selected_stream')
-            
+
             # Use a check to prevent mapping to the same position twice
             if new_position in obj.executor.data['remaps'].values():
                 await query.answer(f"Position {new_position} is already taken. Please choose another position.", show_alert=True)
@@ -292,12 +290,9 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             obj.swap_selection = {'selected_stream': None, 'remaps': {}}
             await obj.swap_stream_select(obj.executor.data['streams'])
         case 'swap_continue':
-            if len(obj.executor.data['remaps']) == 0:
-                await query.answer('Please select at least one stream to reorder.', show_alert=True)
-            else:
-                obj.executor.data['sdata'] = obj.executor.data['remaps']
-                await query.answer('Starting the reordering process.', show_alert=True)
-                obj.event.set()
+            obj.executor.data['sdata'] = obj.executor.data['remaps']
+            await query.answer('Starting the reordering process.', show_alert=True)
+            obj.event.set()
         case 'subsync':
             if data[2].isdigit():
                 obj.status = int(data[2])
