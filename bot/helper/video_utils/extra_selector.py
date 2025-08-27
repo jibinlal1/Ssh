@@ -278,13 +278,17 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             await obj._select_swap_position(stream_index, total_streams)
         case 'swap_position':
             await query.answer()
+            old_stream_index = obj.swap_selection.get('selected_stream')
+            if not old_stream_index:
+                # Handle the case where 'selected_stream' is not in the dictionary
+                await query.answer("Please select a stream first!", show_alert=True)
+                return
+
             new_position = int(data[2])
-            old_stream_index = obj.swap_selection.pop('selected_stream')
+            obj.swap_selection.pop('selected_stream')
             
-            # The remaps dictionary is in self.executor.data
             remaps = obj.executor.data.get('remaps', {})
 
-            # Check if the new position is already taken by a stream from the reorders dict
             if new_position in remaps.values():
                 await query.answer(f"Position {new_position} is already taken. Please choose another position.", show_alert=True)
                 obj.swap_selection['selected_stream'] = old_stream_index
