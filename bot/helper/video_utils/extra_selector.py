@@ -295,7 +295,7 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                 return
 
             new_position = int(data[2])
-            obj.swap_selection.pop('selected_stream')
+            obj.swap_selection['selected_stream'] = None
             
             remaps = obj.executor.data.get('remaps', {})
 
