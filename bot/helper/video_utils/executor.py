@@ -693,36 +693,26 @@ class VidEcxecutor(FFProgress):
             if video_stream:
                 map_args.extend(['-map', f'0:{video_stream["index"]}'])
 
-            # Create a dictionary to hold all streams in their desired output order
-            output_streams = {video_stream["index"]: True} if video_stream else {}
-            
-            # Populate the output_streams dictionary with reordered audio and subtitle streams
+            # Get all audio and subtitle streams
             all_audios = sorted([s for s in streams if s['codec_type'] == 'audio'], key=lambda s: s['index'])
             all_subs = sorted([s for s in streams if s['codec_type'] == 'subtitle'], key=lambda s: s['index'])
-            
-            audio_indices = [s['index'] for s in all_audios]
-            sub_indices = [s['index'] for s in all_subs]
-            
-            remapped_audios = {new_pos: old_idx for old_idx, new_pos in reorders.items() if old_idx in audio_indices}
-            
-            # Add reordered audio streams
-            for new_pos in sorted(remapped_audios.keys()):
-                original_index = remapped_audios[new_pos]
-                if original_index not in output_streams:
-                    output_streams[original_index] = True
-                    map_args.extend(['-map', f'0:{original_index}'])
 
-            # Add remaining audio streams not in reorders
-            for s in all_audios:
-                if s['index'] not in reorders and s['index'] not in output_streams:
-                    output_streams[s['index']] = True
-                    map_args.extend(['-map', f'0:{s["index"]}'])
+            # Collect audio and subtitle streams that were not reordered
+            unreordered_streams = {s['index']: s for s in all_audios + all_subs if s['index'] not in reorders}
+
+            # Build a list of streams in the desired order
+            ordered_stream_indices = []
+            for new_pos in sorted(reorders.keys()):
+                original_index = reorders[new_pos]
+                ordered_stream_indices.append(original_index)
             
-            # Add remaining subtitle streams
-            for s in all_subs:
-                if s['index'] not in output_streams:
-                    output_streams[s['index']] = True
-                    map_args.extend(['-map', f'0:{s["index"]}'])
+            # Add remaining audio and subtitle streams
+            for s in sorted(unreordered_streams.values(), key=lambda s: s['index']):
+                ordered_stream_indices.append(s['index'])
+
+            # Build the final map arguments based on the ordered list
+            for index in ordered_stream_indices:
+                map_args.extend(['-map', f'0:{index}'])
             
             cmd.extend(map_args)
             cmd.extend(['-c', 'copy', self.outfile])
