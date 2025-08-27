@@ -688,31 +688,34 @@ class VidEcxecutor(FFProgress):
             cmd = [FFMPEG_NAME, '-y', '-i', self.path]
             map_args = []
             
-            # Map video stream first to ensure it's always the primary stream
+            # Get video, audio, and subtitle streams
             video_stream = next((s for s in streams if s['codec_type'] == 'video'), None)
+            audio_streams = sorted([s for s in streams if s['codec_type'] == 'audio'], key=lambda s: s['index'])
+            sub_streams = sorted([s for s in streams if s['codec_type'] == 'subtitle'], key=lambda s: s['index'])
+
+            # Add video stream first to map_args
             if video_stream:
                 map_args.extend(['-map', f'0:{video_stream["index"]}'])
 
-            # Get all audio and subtitle streams
-            all_audios = sorted([s for s in streams if s['codec_type'] == 'audio'], key=lambda s: s['index'])
-            all_subs = sorted([s for s in streams if s['codec_type'] == 'subtitle'], key=lambda s: s['index'])
-
-            # Collect audio and subtitle streams that were not reordered
-            unreordered_streams = {s['index']: s for s in all_audios + all_subs if s['index'] not in reorders}
-
-            # Build a list of streams in the desired order
-            ordered_stream_indices = []
-            for new_pos in sorted(reorders.keys()):
-                original_index = reorders[new_pos]
-                ordered_stream_indices.append(original_index)
+            # Create a dictionary to hold audio streams by their desired output index
+            new_audio_order = {}
+            for s in audio_streams:
+                if s['index'] in reorders:
+                    new_audio_order[reorders[s['index']]] = s['index']
+                else:
+                    # Find the next available position for unreordered streams
+                    new_pos = len(new_audio_order) + 1
+                    while new_pos in new_audio_order:
+                        new_pos += 1
+                    new_audio_order[new_pos] = s['index']
             
-            # Add remaining audio and subtitle streams
-            for s in sorted(unreordered_streams.values(), key=lambda s: s['index']):
-                ordered_stream_indices.append(s['index'])
-
-            # Build the final map arguments based on the ordered list
-            for index in ordered_stream_indices:
-                map_args.extend(['-map', f'0:{index}'])
+            # Add audio streams to map_args in the new order
+            for pos in sorted(new_audio_order.keys()):
+                map_args.extend(['-map', f'0:{new_audio_order[pos]}'])
+            
+            # Add subtitle streams to map_args
+            for s in sub_streams:
+                map_args.extend(['-map', f'0:{s["index"]}'])
             
             cmd.extend(map_args)
             cmd.extend(['-c', 'copy', self.outfile])
