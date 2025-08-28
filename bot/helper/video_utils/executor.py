@@ -310,32 +310,29 @@ class VidEcxecutor(FFProgress):
                 
                 # Set video codec, default to libx265 if not specified
                 vcodec = self.data.get('vcodec', 'libx265')
-                if vcodec != 'copy':
-                    cmd.extend(['-c:v', vcodec])
                 
-                # Set CRF, default to 23
+                # Filter complex for custom conversion
+                vfilters = []
+                if 'resolution' in self.data:
+                    vfilters.append(f'scale={self.data["resolution"]}:-2')
+                if 'fps' in self.data:
+                    vfilters.append(f'fps={self.data["fps"]}')
+                if vfilters:
+                    cmd.extend(['-vf', ','.join(vfilters)])
+                
+                cmd.extend(['-c:v', vcodec])
+
                 if 'crf' in self.data:
                     cmd.extend(['-crf', str(self.data['crf'])])
                 
-                # Set bitrate
                 if 'bitrate' in self.data:
                     cmd.extend(['-b:v', self.data['bitrate']])
 
-                # Set preset, default to 'medium'
                 if 'preset' in self.data:
                     cmd.extend(['-preset', self.data['preset']])
                 
-                # Set resolution
-                if 'resolution' in self.data:
-                    cmd.extend(['-vf', f'scale={self.data["resolution"]}:-2'])
-
-                # Set bit depth
                 if self.data.get('bit_depth') == '10bit':
                     cmd.extend(['-pix_fmt', 'yuv420p10le'])
-
-                # Set FPS
-                if 'fps' in self.data:
-                    cmd.extend(['-r', str(self.data['fps'])])
 
                 # Map streams
                 cmd.extend(['-map', '0:v:0', '-map', '0:a:?', '-map', '0:s:?', '-c:a', 'copy', '-c:s', 'copy', self.outfile])
