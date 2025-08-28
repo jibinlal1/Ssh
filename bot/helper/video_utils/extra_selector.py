@@ -223,14 +223,14 @@ class ExtraSelect:
         text = (f"<b>CUSTOM FFmpeg SETTINGS ~ {self._listener.tag}</b>\n"
                 f"<code>{self.executor.name}</code>\n"
                 f"File Size: <b>{get_readable_file_size(self.executor.size)}</b>\n\n"
-                "Please choose your custom settings:\n\n"
                 f"CRF: <b>{self.executor.data.get('crf', 'Default')}</b>\n"
                 f"Video Codec: <b>{self.executor.data.get('vcodec', 'Default')}</b>\n"
                 f"Bitrate: <b>{self.executor.data.get('bitrate', 'Default')}</b>\n"
                 f"Preset: <b>{self.executor.data.get('preset', 'Default')}</b>\n"
                 f"Resolution: <b>{self.executor.data.get('resolution', 'Default')}</b>\n"
                 f"Bit Depth: <b>{self.executor.data.get('bit_depth', '8bit')}</b>\n"
-                f"FPS: <b>{self.executor.data.get('fps', 'Default')}</b>\n")
+                f"FPS: <b>{self.executor.data.get('fps', 'Default')}</b>\n\n"
+                "Please choose your custom settings:")
         
         buttons.button_data('CRF', 'extra convert crf_mode')
         buttons.button_data('Video Codec', 'extra convert vcodec_mode')
@@ -238,7 +238,7 @@ class ExtraSelect:
         buttons.button_data('Preset', 'extra convert preset_mode')
         buttons.button_data('Resolution', 'extra convert resolution_mode')
         
-        bit_depth_button_text = f"10bit"
+        bit_depth_button_text = f"{'✓ ' if self.executor.data.get('bit_depth') == '10bit' else ''}10bit"
         buttons.button_data(bit_depth_button_text, 'extra convert bit_depth_toggle')
         
         buttons.button_data('FPS', 'extra convert fps_mode')
@@ -519,33 +519,33 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                 obj.executor.data = {}
             if 'streams' not in obj.executor.data:
                 obj.executor.data['streams'] = []
-            
+
             match data[2]:
                 case 'crf_mode':
                     await obj._select_crf_quality(obj.executor.data['streams'])
                 case 'crf_set':
                     obj.executor.data['crf'] = int(data[3])
-                    obj.event.set()
+                    await obj._select_custom_options(obj.executor.data['streams'])
                 case 'vcodec_mode':
                     await obj._select_vcodec(obj.executor.data['streams'])
                 case 'vcodec_set':
                     obj.executor.data['vcodec'] = data[3]
-                    obj.event.set()
+                    await obj._select_custom_options(obj.executor.data['streams'])
                 case 'bitrate_mode':
                     await obj._select_bitrate(obj.executor.data['streams'])
                 case 'bitrate_set':
                     obj.executor.data['bitrate'] = data[3]
-                    obj.event.set()
+                    await obj._select_custom_options(obj.executor.data['streams'])
                 case 'preset_mode':
                     await obj._select_preset(obj.executor.data['streams'])
                 case 'preset_set':
                     obj.executor.data['preset'] = data[3]
-                    obj.event.set()
+                    await obj._select_custom_options(obj.executor.data['streams'])
                 case 'resolution_mode':
                     await obj._select_resolution(obj.executor.data['streams'])
                 case 'resolution_set':
                     obj.executor.data['resolution'] = data[3]
-                    obj.event.set()
+                    await obj._select_custom_options(obj.executor.data['streams'])
                 case 'bit_depth_toggle':
                     if obj.executor.data.get('bit_depth') == '10bit':
                         obj.executor.data.pop('bit_depth')
@@ -556,7 +556,7 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                     await obj._select_fps(obj.executor.data['streams'])
                 case 'fps_set':
                     obj.executor.data['fps'] = int(data[3])
-                    obj.event.set()
+                    await obj._select_custom_options(obj.executor.data['streams'])
                 case 'custom_options':
                     await obj._select_custom_options(obj.executor.data['streams'])
                 case 'continue_custom':
