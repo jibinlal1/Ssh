@@ -216,7 +216,7 @@ class ExtraSelect:
     async def _select_custom_options(self, streams: dict):
         if not self.executor.data:
             self.executor.data = {}
-        self.executor.data.update({'streams': streams})
+        self.executor.data.update({'streams': streams, 'remaps': self.swap_selection['remaps']})
         self.set_default_audio_stream(streams)
         
         buttons = ButtonMaker()
@@ -230,7 +230,10 @@ class ExtraSelect:
         buttons.button_data('Bitrate', 'extra convert bitrate_mode')
         buttons.button_data('Preset', 'extra convert preset_mode')
         buttons.button_data('Resolution', 'extra convert resolution_mode')
-        buttons.button_data(f"{'✓ ' if self.executor.data.get('bit_depth') else ''}10bit", 'extra convert bit_depth_mode')
+        
+        bit_depth_button = f"{'✓ ' if self.executor.data.get('bit_depth') else ''}10bit"
+        buttons.button_data(bit_depth_button, 'extra convert bit_depth_mode')
+        
         buttons.button_data('FPS', 'extra convert fps_mode')
 
         buttons.button_data('Back', 'extra convert back', 'footer')
@@ -325,6 +328,9 @@ class ExtraSelect:
         resolutions = ['1920x1080', '1280x720', '854x480', '640x360']
         for res in resolutions:
             buttons.button_data(res, f'extra convert resolution_set {res}')
+            
+        buttons.button_data('2K', 'extra convert resolution_set 2048x1080')
+        buttons.button_data('4K', 'extra convert resolution_set 3840x2160')
 
         buttons.button_data('Custom Resolution', 'extra convert custom_resolution_input')
         buttons.button_data('Back', 'extra convert custom_options', 'footer')
@@ -340,11 +346,11 @@ class ExtraSelect:
         text = (f'<b>BIT DEPTH CONVERT SETTINGS ~ {self._listener.tag}</b>\n'
                 f'<code>{self.executor.name}</code>\n\n'
                 'Please select a bit depth:')
-
-        bit_depths = ['8bit', '10bit']
-        for depth in bit_depths:
-            buttons.button_data(depth, f'extra convert bit_depth_set {depth}')
-
+        
+        current_depth = self.executor.data.get('bit_depth', '8bit')
+        
+        buttons.button_data(f"✓ {current_depth}", f'extra convert bit_depth_set {current_depth}')
+        
         buttons.button_data('Back', 'extra convert custom_options', 'footer')
         buttons.button_data('Cancel', 'extra cancel', 'footer')
 
@@ -535,8 +541,6 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                     obj.executor.data['resolution'] = data[3]
                     obj.event.set()
                 case 'bit_depth_mode':
-                    await obj._select_bit_depth(obj.executor.data['streams'])
-                case 'bit_depth_set':
                     current_value = obj.executor.data.get('bit_depth')
                     if current_value == '10bit':
                         obj.executor.data['bit_depth'] = '8bit'
