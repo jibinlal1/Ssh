@@ -223,7 +223,14 @@ class ExtraSelect:
         text = (f"<b>CUSTOM FFmpeg SETTINGS ~ {self._listener.tag}</b>\n"
                 f"<code>{self.executor.name}</code>\n"
                 f"File Size: <b>{get_readable_file_size(self.executor.size)}</b>\n\n"
-                "Please choose your custom settings:")
+                "Please choose your custom settings:\n\n"
+                f"CRF: <b>{self.executor.data.get('crf', 'Default')}</b>\n"
+                f"Video Codec: <b>{self.executor.data.get('vcodec', 'Default')}</b>\n"
+                f"Bitrate: <b>{self.executor.data.get('bitrate', 'Default')}</b>\n"
+                f"Preset: <b>{self.executor.data.get('preset', 'Default')}</b>\n"
+                f"Resolution: <b>{self.executor.data.get('resolution', 'Default')}</b>\n"
+                f"Bit Depth: <b>{self.executor.data.get('bit_depth', '8bit')}</b>\n"
+                f"FPS: <b>{self.executor.data.get('fps', 'Default')}</b>\n")
         
         buttons.button_data('CRF', 'extra convert crf_mode')
         buttons.button_data('Video Codec', 'extra convert vcodec_mode')
@@ -231,7 +238,7 @@ class ExtraSelect:
         buttons.button_data('Preset', 'extra convert preset_mode')
         buttons.button_data('Resolution', 'extra convert resolution_mode')
         
-        bit_depth_button_text = f"{'✓ ' if self.executor.data.get('bit_depth') == '10bit' else ''}10bit"
+        bit_depth_button_text = f"10bit"
         buttons.button_data(bit_depth_button_text, 'extra convert bit_depth_toggle')
         
         buttons.button_data('FPS', 'extra convert fps_mode')
@@ -556,10 +563,7 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                     await query.answer('Starting the custom convert process.', show_alert=True)
                     obj.event.set()
                 case 'back':
-                    if 'streams' not in obj.executor.data:
-                         await obj.convert_select(None)
-                    else:
-                        await obj.convert_select(obj.executor.data['streams'])
+                    await obj.convert_select(obj.executor.data['streams'])
                 case 'custom_crf_input':
                     await obj._await_text_input(
                         prompt="Please send a custom CRF value (e.g., `24`).\n<i>Timeout: 60s.</i>",
