@@ -216,7 +216,7 @@ class ExtraSelect:
     async def _select_custom_options(self, streams: dict):
         if not self.executor.data:
             self.executor.data = {}
-        self.executor.data.update({'streams': streams, 'remaps': self.swap_selection['remaps']})
+        self.executor.data.update({'streams': streams})
         self.set_default_audio_stream(streams)
         
         buttons = ButtonMaker()
@@ -229,6 +229,9 @@ class ExtraSelect:
         buttons.button_data('Video Codec', 'extra convert vcodec_mode')
         buttons.button_data('Bitrate', 'extra convert bitrate_mode')
         buttons.button_data('Preset', 'extra convert preset_mode')
+        buttons.button_data('Resolution', 'extra convert resolution_mode')
+        buttons.button_data(f"{'✓ ' if self.executor.data.get('bit_depth') else ''}10bit", 'extra convert bit_depth_mode')
+        buttons.button_data('FPS', 'extra convert fps_mode')
 
         buttons.button_data('Back', 'extra convert back', 'footer')
         buttons.button_data('Continue ✓', 'extra convert continue_custom', 'footer')
@@ -305,6 +308,62 @@ class ExtraSelect:
         for preset in presets:
             buttons.button_data(preset, f'extra convert preset_set {preset}')
 
+        buttons.button_data('Back', 'extra convert custom_options', 'footer')
+        buttons.button_data('Cancel', 'extra cancel', 'footer')
+
+        await self.update_message(text, buttons.build_menu(3))
+
+    async def _select_resolution(self, streams: dict):
+        if not self.executor.data:
+            self.executor.data = {}
+        self.executor.data.update({'streams': streams})
+        buttons = ButtonMaker()
+        text = (f'<b>RESOLUTION CONVERT SETTINGS ~ {self._listener.tag}</b>\n'
+                f'<code>{self.executor.name}</code>\n\n'
+                'Please select a resolution:')
+
+        resolutions = ['1920x1080', '1280x720', '854x480', '640x360']
+        for res in resolutions:
+            buttons.button_data(res, f'extra convert resolution_set {res}')
+
+        buttons.button_data('Custom Resolution', 'extra convert custom_resolution_input')
+        buttons.button_data('Back', 'extra convert custom_options', 'footer')
+        buttons.button_data('Cancel', 'extra cancel', 'footer')
+
+        await self.update_message(text, buttons.build_menu(3))
+
+    async def _select_bit_depth(self, streams: dict):
+        if not self.executor.data:
+            self.executor.data = {}
+        self.executor.data.update({'streams': streams})
+        buttons = ButtonMaker()
+        text = (f'<b>BIT DEPTH CONVERT SETTINGS ~ {self._listener.tag}</b>\n'
+                f'<code>{self.executor.name}</code>\n\n'
+                'Please select a bit depth:')
+
+        bit_depths = ['8bit', '10bit']
+        for depth in bit_depths:
+            buttons.button_data(depth, f'extra convert bit_depth_set {depth}')
+
+        buttons.button_data('Back', 'extra convert custom_options', 'footer')
+        buttons.button_data('Cancel', 'extra cancel', 'footer')
+
+        await self.update_message(text, buttons.build_menu(2))
+
+    async def _select_fps(self, streams: dict):
+        if not self.executor.data:
+            self.executor.data = {}
+        self.executor.data.update({'streams': streams})
+        buttons = ButtonMaker()
+        text = (f'<b>FPS CONVERT SETTINGS ~ {self._listener.tag}</b>\n'
+                f'<code>{self.executor.name}</code>\n\n'
+                'Please select a frame rate:')
+
+        fps_options = ['24', '25', '30', '60']
+        for fps in fps_options:
+            buttons.button_data(f'{fps} FPS', f'extra convert fps_set {fps}')
+
+        buttons.button_data('Custom FPS', 'extra convert custom_fps_input')
         buttons.button_data('Back', 'extra convert custom_options', 'footer')
         buttons.button_data('Cancel', 'extra cancel', 'footer')
 
@@ -444,51 +503,52 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             obj.event.set()
         case 'convert':
             await query.answer()
+            if not obj.executor.data:
+                obj.executor.data = {}
+            if 'streams' not in obj.executor.data:
+                obj.executor.data['streams'] = []
+            
             match data[2]:
                 case 'crf_mode':
-                    if not obj.executor.data:
-                        obj.executor.data = {}
-                        obj.executor.data['streams'] = []
                     await obj._select_crf_quality(obj.executor.data['streams'])
                 case 'crf_set':
-                    if not obj.executor.data:
-                        obj.executor.data = {}
                     obj.executor.data['crf'] = int(data[3])
                     obj.event.set()
                 case 'vcodec_mode':
-                    if not obj.executor.data:
-                        obj.executor.data = {}
-                        obj.executor.data['streams'] = []
                     await obj._select_vcodec(obj.executor.data['streams'])
                 case 'vcodec_set':
-                    if not obj.executor.data:
-                        obj.executor.data = {}
                     obj.executor.data['vcodec'] = data[3]
                     obj.event.set()
                 case 'bitrate_mode':
-                    if not obj.executor.data:
-                        obj.executor.data = {}
-                        obj.executor.data['streams'] = []
                     await obj._select_bitrate(obj.executor.data['streams'])
                 case 'bitrate_set':
-                    if not obj.executor.data:
-                        obj.executor.data = {}
                     obj.executor.data['bitrate'] = data[3]
                     obj.event.set()
                 case 'preset_mode':
-                    if not obj.executor.data:
-                        obj.executor.data = {}
-                        obj.executor.data['streams'] = []
                     await obj._select_preset(obj.executor.data['streams'])
                 case 'preset_set':
-                    if not obj.executor.data:
-                        obj.executor.data = {}
                     obj.executor.data['preset'] = data[3]
                     obj.event.set()
+                case 'resolution_mode':
+                    await obj._select_resolution(obj.executor.data['streams'])
+                case 'resolution_set':
+                    obj.executor.data['resolution'] = data[3]
+                    obj.event.set()
+                case 'bit_depth_mode':
+                    await obj._select_bit_depth(obj.executor.data['streams'])
+                case 'bit_depth_set':
+                    current_value = obj.executor.data.get('bit_depth')
+                    if current_value == '10bit':
+                        obj.executor.data['bit_depth'] = '8bit'
+                    else:
+                        obj.executor.data['bit_depth'] = '10bit'
+                    await obj._select_custom_options(obj.executor.data['streams'])
+                case 'fps_mode':
+                    await obj._select_fps(obj.executor.data['streams'])
+                case 'fps_set':
+                    obj.executor.data['fps'] = int(data[3])
+                    obj.event.set()
                 case 'custom_options':
-                    if not obj.executor.data:
-                        obj.executor.data = {}
-                        obj.executor.data['streams'] = []
                     await obj._select_custom_options(obj.executor.data['streams'])
                 case 'continue_custom':
                     await query.answer('Starting the custom convert process.', show_alert=True)
@@ -509,6 +569,18 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                         prompt="Please send a custom bitrate value (e.g., `1M` or `1024K`).\n<i>Timeout: 60s.</i>",
                         key_to_set='bitrate',
                         back_callback='bitrate_mode'
+                    )
+                case 'custom_resolution_input':
+                    await obj._await_text_input(
+                        prompt="Please send a custom resolution (e.g., `1920x1080` or `1280:-2`).\n<i>Timeout: 60s.</i>",
+                        key_to_set='resolution',
+                        back_callback='resolution_mode'
+                    )
+                case 'custom_fps_input':
+                    await obj._await_text_input(
+                        prompt="Please send a custom FPS value (e.g., `30`).\n<i>Timeout: 60s.</i>",
+                        key_to_set='fps',
+                        back_callback='fps_mode'
                     )
                 case _:
                     if not obj.executor.data:
