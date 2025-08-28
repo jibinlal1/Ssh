@@ -269,7 +269,7 @@ class ExtraSelect:
                 f'<code>{self.executor.name}</code>\n\n'
                 'Please select a video codec:')
         
-        vcodecs = ['libx264', 'libx265', 'copy']
+        vcodecs = ['libx264', 'libx265', 'copy', 'hevc']
         for vcodec in vcodecs:
             buttons.button_data(vcodec, f'extra convert vcodec_set {vcodec}')
         
@@ -374,6 +374,8 @@ class ExtraSelect:
 
     async def _await_text_input(self, prompt, key_to_set, back_callback):
         self.status = 'awaiting_custom_input'
+        if not self.executor.data:
+            self.executor.data = {}
         self.executor.data['custom_key'] = key_to_set
         
         buttons = ButtonMaker()
@@ -538,8 +540,7 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                     obj.executor.data['resolution'] = data[3]
                     obj.event.set()
                 case 'bit_depth_toggle':
-                    current_value = obj.executor.data.get('bit_depth')
-                    if current_value == '10bit':
+                    if obj.executor.data.get('bit_depth') == '10bit':
                         obj.executor.data.pop('bit_depth')
                     else:
                         obj.executor.data['bit_depth'] = '10bit'
