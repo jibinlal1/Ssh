@@ -308,35 +308,42 @@ class VidEcxecutor(FFProgress):
                 # Custom FFmpeg options
                 cmd = [FFMPEG_NAME, '-hide_banner', '-ignore_unknown', '-y', '-i', self.path]
                 
-                # Set video codec, default to libx265 if not specified
-                vcodec = self.data.get('vcodec', 'libx265')
-                
-                # Filter complex for custom conversion
                 vfilters = []
-                if 'resolution' in self.data:
-                    vfilters.append(f'scale={self.data["resolution"]}:-2')
-                if 'fps' in self.data:
-                    vfilters.append(f'fps={self.data["fps"]}')
-                if vfilters:
-                    cmd.extend(['-vf', ','.join(vfilters)])
-                
+                # Set video codec
+                vcodec = self.data.get('vcodec')
+                if not vcodec:
+                    vcodec = 'libx265'
                 cmd.extend(['-c:v', vcodec])
-
+                
+                # Set CRF, if available
                 if 'crf' in self.data:
                     cmd.extend(['-crf', str(self.data['crf'])])
                 
+                # Set bitrate, if available
                 if 'bitrate' in self.data:
                     cmd.extend(['-b:v', self.data['bitrate']])
 
+                # Set preset, if available
                 if 'preset' in self.data:
                     cmd.extend(['-preset', self.data['preset']])
                 
+                # Set resolution, if available
+                if 'resolution' in self.data:
+                    vfilters.append(f'scale={self.data["resolution"]}:-2')
+
+                # Set bit depth, if available
                 if self.data.get('bit_depth') == '10bit':
                     cmd.extend(['-pix_fmt', 'yuv420p10le'])
 
+                # Set FPS, if available
+                if 'fps' in self.data:
+                    vfilters.append(f'fps={self.data["fps"]}')
+                    
+                if vfilters:
+                    cmd.extend(['-vf', ','.join(vfilters)])
+                
                 # Map streams
                 cmd.extend(['-map', '0:v:0', '-map', '0:a:?', '-map', '0:s:?', '-c:a', 'copy', '-c:s', 'copy', self.outfile])
-
             else:
                 # Default conversion (e.g., to 1080p, 720p, etc.)
                 cmd = [FFMPEG_NAME, '-hide_banner', '-ignore_unknown', '-y', '-i', self.path, '-map', '0:v:0',
