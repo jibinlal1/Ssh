@@ -209,12 +209,31 @@ class ExtraSelect:
         for key in keys[keys.index(hvid)+1:]:
             buttons.button_data(resulution[key], f'extra convert {key}')
 
-        buttons.button_data('CRF', 'extra convert crf')
-        buttons.button_data('Custom FFmpeg', 'extra convert custom')
+        buttons.button_data('Custom FFmpeg', 'extra convert custom_options')
         buttons.button_data('Cancel', 'extra cancel', 'footer')
         await self.update_message(f'{self._listener.tag}, Select available resulution to convert.\n<code>{self.executor.name}</code>', buttons.build_menu(2))
 
-    async def _select_crf_quality(self, streams: dict):
+    async def _select_custom_options(self, streams: dict):
+        self.executor.data = {}
+        self.set_default_audio_stream(streams)
+        
+        buttons = ButtonMaker()
+        text = (f"<b>CUSTOM FFmpeg SETTINGS ~ {self._listener.tag}</b>\n"
+                f"<code>{self.executor.name}</code>\n"
+                f"File Size: <b>{get_readable_file_size(self.executor.size)}</b>\n\n"
+                "Please choose your custom settings:")
+        
+        buttons.button_data('CRF', 'extra convert crf_mode')
+        buttons.button_data('Video Codec', 'extra convert vcodec_mode')
+        buttons.button_data('Bitrate', 'extra convert bitrate_mode')
+        buttons.button_data('Preset', 'extra convert preset_mode')
+
+        buttons.button_data('Back', 'extra convert back', 'footer')
+        buttons.button_data('Continue ✓', 'extra convert continue_custom', 'footer')
+        
+        await self.update_message(text, buttons.build_menu(2))
+    
+    async def _select_crf(self, streams: dict):
         buttons = ButtonMaker()
         text = (f'<b>CRF CONVERT SETTINGS ~ {self._listener.tag}</b>\n'
                 f'<code>{self.executor.name}</code>\n\n'
@@ -224,23 +243,68 @@ class ExtraSelect:
         for crf_value in ['18', '21', '23', '25', '28']:
             buttons.button_data(f'CRF {crf_value}', f'extra convert crf_set {crf_value}')
         
-        buttons.button_data('Custom CRF', 'extra convert custom_crf')
-        buttons.button_data('Back', 'extra convert back', 'footer')
+        buttons.button_data('Back', 'extra convert custom_options', 'footer')
+        buttons.button_data('Custom CRF', 'extra convert custom_crf_input')
+        buttons.button_data('Cancel', 'extra cancel', 'footer')
+
+        await self.update_message(text, buttons.build_menu(3))
+    
+    async def _select_vcodec(self, streams: dict):
+        buttons = ButtonMaker()
+        text = (f'<b>VIDEO CODEC SETTINGS ~ {self._listener.tag}</b>\n'
+                f'<code>{self.executor.name}</code>\n\n'
+                'Please select a video codec:')
+        
+        vcodecs = ['libx264', 'libx265', 'copy']
+        for vcodec in vcodecs:
+            buttons.button_data(vcodec, f'extra convert vcodec_set {vcodec}')
+        
+        buttons.button_data('Back', 'extra convert custom_options', 'footer')
         buttons.button_data('Cancel', 'extra cancel', 'footer')
 
         await self.update_message(text, buttons.build_menu(3))
 
-    async def _custom_ffmpeg_command(self):
-        self.status = 'await_custom_cmd'
-        text = f"<b>CUSTOM FFmpeg COMMAND ~ {self._listener.tag}</b>\n\n"
-        text += "Please send your custom FFmpeg command. For example:\n"
-        text += "```-c:v libx265 -crf 28 -c:a aac -b:a 160k```\n\n"
-        text += "<i>Timeout: 60s.</i>"
+    async def _select_bitrate(self, streams: dict):
+        buttons = ButtonMaker()
+        text = (f'<b>VIDEO BITRATE SETTINGS ~ {self._listener.tag}</b>\n'
+                f'<code>{self.executor.name}</code>\n\n'
+                'Please select a video bitrate:')
+
+        bitrates = ['1M', '2M', '5M', '10M', '20M']
+        for bitrate in bitrates:
+            buttons.button_data(bitrate, f'extra convert bitrate_set {bitrate}')
+
+        buttons.button_data('Back', 'extra convert custom_options', 'footer')
+        buttons.button_data('Custom Bitrate', 'extra convert custom_bitrate_input')
+        buttons.button_data('Cancel', 'extra cancel', 'footer')
+
+        await self.update_message(text, buttons.build_menu(3))
+
+    async def _select_preset(self, streams: dict):
+        buttons = ButtonMaker()
+        text = (f'<b>VIDEO PRESET SETTINGS ~ {self._listener.tag}</b>\n'
+                f'<code>{self.executor.name}</code>\n\n'
+                'Please select a video preset:\n'
+                '<i>Slower presets offer better compression.</i>')
+
+        presets = ['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium', 'slow', 'slower', 'veryslow']
+        for preset in presets:
+            buttons.button_data(preset, f'extra convert preset_set {preset}')
+
+        buttons.button_data('Back', 'extra convert custom_options', 'footer')
+        buttons.button_data('Cancel', 'extra cancel', 'footer')
+
+        await self.update_message(text, buttons.build_menu(3))
+
+    async def _await_text_input(self, prompt, key_to_set, back_callback):
+        self.status = 'awaiting_custom_input'
+        self.executor.data['custom_key'] = key_to_set
         
         buttons = ButtonMaker()
+        buttons.button_data('Back', f'extra convert {back_callback}', 'footer')
         buttons.button_data('Cancel', 'extra cancel', 'footer')
         
-        await self.update_message(text, buttons.build_menu(1))
+        await self.update_message(prompt, buttons.build_menu(1))
         self.event.set()
 
     async def subsync_select(self, streams: dict):
@@ -367,15 +431,46 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
         case 'convert':
             await query.answer()
             match data[2]:
-                case 'crf':
-                    await obj._select_crf_quality(obj.executor.data['streams'])
+                case 'crf_mode':
+                    await obj._select_crf(obj.executor.data['streams'])
                 case 'crf_set':
                     obj.executor.data['crf'] = int(data[3])
                     obj.event.set()
-                case 'custom':
-                    await obj._custom_ffmpeg_command()
+                case 'vcodec_mode':
+                    await obj._select_vcodec(obj.executor.data['streams'])
+                case 'vcodec_set':
+                    obj.executor.data['vcodec'] = data[3]
+                    obj.event.set()
+                case 'bitrate_mode':
+                    await obj._select_bitrate(obj.executor.data['streams'])
+                case 'bitrate_set':
+                    obj.executor.data['bitrate'] = data[3]
+                    obj.event.set()
+                case 'preset_mode':
+                    await obj._select_preset(obj.executor.data['streams'])
+                case 'preset_set':
+                    obj.executor.data['preset'] = data[3]
+                    obj.event.set()
+                case 'custom_options':
+                    await obj._select_custom_options(obj.executor.data['streams'])
+                case 'continue_custom':
+                    await query.answer('Starting the custom convert process.', show_alert=True)
+                    obj.event.set()
                 case 'back':
+                    # Logic to go back to the previous menu.
                     await obj.convert_select(obj.executor.data['streams'])
+                case 'custom_crf_input':
+                    await obj._await_text_input(
+                        prompt="Please send a custom CRF value (e.g., `24`).\n<i>Timeout: 60s.</i>",
+                        key_to_set='crf',
+                        back_callback='crf_mode'
+                    )
+                case 'custom_bitrate_input':
+                    await obj._await_text_input(
+                        prompt="Please send a custom bitrate value (e.g., `1M` or `1024K`).\n<i>Timeout: 60s.</i>",
+                        key_to_set='bitrate',
+                        back_callback='bitrate_mode'
+                    )
                 case _:
                     obj.executor.data = data[2]
                     obj.event.set()
