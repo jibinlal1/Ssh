@@ -236,6 +236,9 @@ class ExtraSelect:
         await self.update_message(text, buttons.build_menu(2))
     
     async def _select_crf_quality(self, streams: dict):
+        if not self.executor.data:
+            self.executor.data = {}
+        self.executor.data.update({'streams': streams})
         buttons = ButtonMaker()
         text = (f'<b>CRF CONVERT SETTINGS ~ {self._listener.tag}</b>\n'
                 f'<code>{self.executor.name}</code>\n\n'
@@ -252,6 +255,9 @@ class ExtraSelect:
         await self.update_message(text, buttons.build_menu(3))
     
     async def _select_vcodec(self, streams: dict):
+        if not self.executor.data:
+            self.executor.data = {}
+        self.executor.data.update({'streams': streams})
         buttons = ButtonMaker()
         text = (f'<b>VIDEO CODEC SETTINGS ~ {self._listener.tag}</b>\n'
                 f'<code>{self.executor.name}</code>\n\n'
@@ -267,6 +273,9 @@ class ExtraSelect:
         await self.update_message(text, buttons.build_menu(3))
 
     async def _select_bitrate(self, streams: dict):
+        if not self.executor.data:
+            self.executor.data = {}
+        self.executor.data.update({'streams': streams})
         buttons = ButtonMaker()
         text = (f'<b>VIDEO BITRATE SETTINGS ~ {self._listener.tag}</b>\n'
                 f'<code>{self.executor.name}</code>\n\n'
@@ -283,6 +292,9 @@ class ExtraSelect:
         await self.update_message(text, buttons.build_menu(3))
 
     async def _select_preset(self, streams: dict):
+        if not self.executor.data:
+            self.executor.data = {}
+        self.executor.data.update({'streams': streams})
         buttons = ButtonMaker()
         text = (f'<b>VIDEO PRESET SETTINGS ~ {self._listener.tag}</b>\n'
                 f'<code>{self.executor.name}</code>\n\n'
@@ -434,33 +446,58 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             await query.answer()
             match data[2]:
                 case 'crf_mode':
+                    if not obj.executor.data:
+                        obj.executor.data = {}
+                        obj.executor.data['streams'] = []
                     await obj._select_crf_quality(obj.executor.data['streams'])
                 case 'crf_set':
+                    if not obj.executor.data:
+                        obj.executor.data = {}
                     obj.executor.data['crf'] = int(data[3])
                     obj.event.set()
                 case 'vcodec_mode':
+                    if not obj.executor.data:
+                        obj.executor.data = {}
+                        obj.executor.data['streams'] = []
                     await obj._select_vcodec(obj.executor.data['streams'])
                 case 'vcodec_set':
+                    if not obj.executor.data:
+                        obj.executor.data = {}
                     obj.executor.data['vcodec'] = data[3]
                     obj.event.set()
                 case 'bitrate_mode':
+                    if not obj.executor.data:
+                        obj.executor.data = {}
+                        obj.executor.data['streams'] = []
                     await obj._select_bitrate(obj.executor.data['streams'])
                 case 'bitrate_set':
+                    if not obj.executor.data:
+                        obj.executor.data = {}
                     obj.executor.data['bitrate'] = data[3]
                     obj.event.set()
                 case 'preset_mode':
+                    if not obj.executor.data:
+                        obj.executor.data = {}
+                        obj.executor.data['streams'] = []
                     await obj._select_preset(obj.executor.data['streams'])
                 case 'preset_set':
+                    if not obj.executor.data:
+                        obj.executor.data = {}
                     obj.executor.data['preset'] = data[3]
                     obj.event.set()
                 case 'custom_options':
+                    if not obj.executor.data:
+                        obj.executor.data = {}
+                        obj.executor.data['streams'] = []
                     await obj._select_custom_options(obj.executor.data['streams'])
                 case 'continue_custom':
                     await query.answer('Starting the custom convert process.', show_alert=True)
                     obj.event.set()
                 case 'back':
-                    # Logic to go back to the previous menu.
-                    await obj.convert_select(obj.executor.data['streams'])
+                    if 'streams' not in obj.executor.data:
+                         await obj.convert_select(None)
+                    else:
+                        await obj.convert_select(obj.executor.data['streams'])
                 case 'custom_crf_input':
                     await obj._await_text_input(
                         prompt="Please send a custom CRF value (e.g., `24`).\n<i>Timeout: 60s.</i>",
@@ -474,6 +511,8 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                         back_callback='bitrate_mode'
                     )
                 case _:
+                    if not obj.executor.data:
+                        obj.executor.data = {}
                     obj.executor.data = data[2]
                     obj.event.set()
         case 'rmstream':
