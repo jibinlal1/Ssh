@@ -214,7 +214,9 @@ class ExtraSelect:
         await self.update_message(f'{self._listener.tag}, Select available resulution to convert.\n<code>{self.executor.name}</code>', buttons.build_menu(2))
 
     async def _select_custom_options(self, streams: dict):
-        self.executor.data = {}
+        if not self.executor.data:
+            self.executor.data = {}
+        self.executor.data.update({'streams': streams, 'remaps': self.swap_selection['remaps']})
         self.set_default_audio_stream(streams)
         
         buttons = ButtonMaker()
@@ -233,7 +235,7 @@ class ExtraSelect:
         
         await self.update_message(text, buttons.build_menu(2))
     
-    async def _select_crf(self, streams: dict):
+    async def _select_crf_quality(self, streams: dict):
         buttons = ButtonMaker()
         text = (f'<b>CRF CONVERT SETTINGS ~ {self._listener.tag}</b>\n'
                 f'<code>{self.executor.name}</code>\n\n'
@@ -243,8 +245,8 @@ class ExtraSelect:
         for crf_value in ['18', '21', '23', '25', '28']:
             buttons.button_data(f'CRF {crf_value}', f'extra convert crf_set {crf_value}')
         
-        buttons.button_data('Back', 'extra convert custom_options', 'footer')
         buttons.button_data('Custom CRF', 'extra convert custom_crf_input')
+        buttons.button_data('Back', 'extra convert custom_options', 'footer')
         buttons.button_data('Cancel', 'extra cancel', 'footer')
 
         await self.update_message(text, buttons.build_menu(3))
@@ -432,7 +434,7 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             await query.answer()
             match data[2]:
                 case 'crf_mode':
-                    await obj._select_crf(obj.executor.data['streams'])
+                    await obj._select_crf_quality(obj.executor.data['streams'])
                 case 'crf_set':
                     obj.executor.data['crf'] = int(data[3])
                     obj.event.set()
