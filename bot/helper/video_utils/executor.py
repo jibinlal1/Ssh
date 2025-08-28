@@ -109,7 +109,7 @@ class VidEcxecutor(FFProgress):
                     return await self._swap_streams()
                 case 'extract':
                     return await self._vid_extract()
-                case _:
+                case 'convert':
                     return await self._vid_convert()
         except Exception as e:
             LOGGER.error(e, exc_info=True)
@@ -300,11 +300,51 @@ class VidEcxecutor(FFProgress):
         for file in file_list:
             self.path = file
             if not self._metadata:
-                _, self.size = await gather(self._name_base_dir(self.path, f'Convert-{self.data}', multi), get_path_size(self.path))
+                _, self.size = await gather(self._name_base_dir(self.path, 'Convert', multi), get_path_size(self.path))
             self.outfile = ospath.join(base_dir, self.name)
             self._files.append(self.path)
-            cmd = [FFMPEG_NAME, '-hide_banner', '-ignore_unknown', '-y', '-i', self.path, '-map', '0:v:0',
-                   '-vf', f'scale={self._qual[self.data]}:-2', '-map', '0:a:?', '-map', '0:s:?', '-c:a', 'copy', '-c:s', 'copy', self.outfile]
+
+            if isinstance(self.data, dict):
+                # Custom FFmpeg options
+                cmd = [FFMPEG_NAME, '-hide_banner', '-ignore_unknown', '-y', '-i', self.path]
+                
+                # Set video codec, default to libx265 if not specified
+                vcodec = self.data.get('vcodec', 'libx265')
+                if vcodec != 'copy':
+                    cmd.extend(['-c:v', vcodec])
+                
+                # Set CRF, default to 23
+                if 'crf' in self.data:
+                    cmd.extend(['-crf', str(self.data['crf'])])
+                
+                # Set bitrate
+                if 'bitrate' in self.data:
+                    cmd.extend(['-b:v', self.data['bitrate']])
+
+                # Set preset, default to 'medium'
+                if 'preset' in self.data:
+                    cmd.extend(['-preset', self.data['preset']])
+                
+                # Set resolution
+                if 'resolution' in self.data:
+                    cmd.extend(['-vf', f'scale={self.data["resolution"]}:-2'])
+
+                # Set bit depth
+                if self.data.get('bit_depth') == '10bit':
+                    cmd.extend(['-pix_fmt', 'yuv420p10le'])
+
+                # Set FPS
+                if 'fps' in self.data:
+                    cmd.extend(['-r', str(self.data['fps'])])
+
+                # Map streams
+                cmd.extend(['-map', '0:v:0', '-map', '0:a:?', '-map', '0:s:?', '-c:a', 'copy', '-c:s', 'copy', self.outfile])
+
+            else:
+                # Default conversion (e.g., to 1080p, 720p, etc.)
+                cmd = [FFMPEG_NAME, '-hide_banner', '-ignore_unknown', '-y', '-i', self.path, '-map', '0:v:0',
+                       '-vf', f'scale={self._qual[self.data]}:-2', '-map', '0:a:?', '-map', '0:s:?', '-c:a', 'copy', '-c:s', 'copy', self.outfile]
+
             await self._run_cmd(cmd)
             if self.is_cancel:
                 return
