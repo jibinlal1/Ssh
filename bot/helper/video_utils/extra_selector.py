@@ -194,25 +194,28 @@ class ExtraSelect:
     async def convert_select(self, streams: dict):
         buttons = ButtonMaker()
         hvid = '1080p'
-        resulution = {'1080p': 'Convert 1080p',
-                      '720p': 'Convert 720p',
-                      '540p': 'Convert 540p',
-                      '480p': 'Convert 480p',
-                      '360p': 'Convert 360p'}
+        resolution_options = {
+            '1080p': 'Convert to 1080p',
+            '720p': 'Convert to 720p',
+            '540p': 'Convert to 540p',
+            '480p': 'Convert to 480p',
+            '360p': 'Convert to 360p'
+        }
         for stream in streams:
             if stream['codec_type'] == 'video':
                 vid_height = f'{stream["height"]}p'
-                if vid_height in resulution:
+                if vid_height in resolution_options:
                     hvid = vid_height
                 break
-        keys = list(resulution)
-        for key in keys[keys.index(hvid)+1:]:
-            buttons.button_data(resulution[key], f'extra convert {key}')
+        
+        # Add all resolution options directly
+        for key in resolution_options.keys():
+            buttons.button_data(resolution_options[key], f'extra convert {key}')
 
         buttons.button_data('Custom FFmpeg', 'extra convert custom_options')
-        buttons.button_data('Resolution', 'extra convert resolution_mode')
         buttons.button_data('Cancel', 'extra cancel', 'footer')
-        await self.update_message(f'{self._listener.tag}, Select available resulution to convert.\n<code>{self.executor.name}</code>', buttons.build_menu(2))
+        
+        await self.update_message(f'{self._listener.tag}, Select a resolution to convert.\n<code>{self.executor.name}</code>', buttons.build_menu(2))
 
     async def _select_custom_options(self, streams: dict):
         if not self.executor.data:
@@ -524,7 +527,8 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                     await obj._select_resolution(obj.executor.data['streams'])
                 case 'resolution_set':
                     obj.executor.data['resolution'] = data[3]
-                    await obj._select_custom_options(obj.executor.data['streams'])
+                    obj.executor.data['vcodec'] = 'libx264' # Set a default codec for resolution conversion
+                    obj.event.set()
                 case 'bit_depth_toggle':
                     if obj.executor.data.get('bit_depth') == '10bit':
                         obj.executor.data.pop('bit_depth')
