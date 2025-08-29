@@ -1,4 +1,5 @@
-from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
 
 class ButtonMaker:
     def __init__(self):
@@ -6,47 +7,54 @@ class ButtonMaker:
         self._header_button = []
         self._footer_button = []
 
-    def build_button(self, key, link, GDrive=False):
-        if GDrive and key == "Don't Change":
-            self._button.append(InlineKeyboardButton(text=str(key), callback_data=link.encode("UTF-8")))
-        else:
-            self._button.append(InlineKeyboardButton(text=str(key), url=link))
+    def reset(self):
+        self._button.clear()
+        self._header_button.clear()
+        self._footer_button.clear()
 
-    def get_buttons(self, edit_buttons=None):
-        if edit_buttons:
-            return InlineKeyboardMarkup(edit_buttons)
-        return InlineKeyboardMarkup([self._button])
+    def button_link(self, key, link, position=None):
+        match position:
+            case 'header':
+                self._header_button.append(InlineKeyboardButton(text=key, url=link))
+            case 'footer':
+                self._footer_button.append(InlineKeyboardButton(text=key, url=link))
+            case _:
+                self._button.append(InlineKeyboardButton(text=key, url=link))
 
+    def button_data(self, key, data, position=None):
+        match position:
+            case 'header':
+                self._header_button.append(InlineKeyboardButton(text=key, callback_data=data))
+            case 'footer':
+                self._footer_button.append(InlineKeyboardButton(text=key, callback_data=data))
+            case _:
+                self._button.append(InlineKeyboardButton(text=key, callback_data=data))
+
+    # New function added for compatibility
     def sbutton(self, key, data):
-        self._button.append(InlineKeyboardButton(text=str(key), callback_data=data.encode("UTF-8")))
+        self.button_data(key, data)
 
-    def kbutton(self, key, data, callback=True):
-        if callback:
-            self._button.append(InlineKeyboardButton(text=key, callback_data=data.encode("UTF-8")))
-        else:
-            self._button.append(InlineKeyboardButton(text=key, url=data))
+    # New function added for compatibility
+    def add_footer(self, key, data):
+        self.button_data(key, data, position='footer')
 
-    def dbutton(self, key, data, source_url):
-        self._button.append(InlineKeyboardButton(text=key, callback_data=data.encode("UTF-8")))
-        self.build_button("Source", source_url)
+    def build_menu(self, b_cols=1, h_cols=8, f_cols=8):
+        menu = [self._button[i:i + b_cols] for i in range(0, len(self._button), b_cols)]
+        if self._header_button:
+            h_cnt = len(self._header_button)
+            if h_cnt > h_cols:
+                header_buttons = [self._header_button[i:i + h_cols] for i in range(0, len(self._header_button), h_cols)]
+                menu = header_buttons + menu
+            else:
+                menu.insert(0, self._header_button)
+        if self._footer_button:
+            if len(self._footer_button) > f_cols:
+                _ = [menu.append(self._footer_button[i:i + f_cols]) for i in range(0, len(self._footer_button), f_cols)]
+            else:
+                menu.append(self._footer_button)
+        return InlineKeyboardMarkup(menu) if len(menu) else None
 
-    def add_header(self, key, data, callback=True):
-        if callback:
-            self._header_button.append(InlineKeyboardButton(text=key, callback_data=data.encode("UTF-8")))
-        else:
-            self._header_button.append(InlineKeyboardButton(text=key, url=data))
-
-    def add_footer(self, key, data, callback=True):
-        if callback:
-            self._footer_button.append(InlineKeyboardButton(text=key, callback_data=data.encode("UTF-8")))
-        else:
-            self._footer_button.append(InlineKeyboardButton(text=key, url=data))
-
+    # New property added for compatibility
     @property
     def markup(self):
-        buttons = [self._button[i:i+3] for i in range(0, len(self._button), 3)]
-        if self._header_button:
-            buttons.insert(0, self._header_button)
-        if self._footer_button:
-            buttons.append(self._footer_button)
-        return InlineKeyboardMarkup(buttons)
+        return self.build_menu(2) # Defaulting to 2 columns for the new feature layout
