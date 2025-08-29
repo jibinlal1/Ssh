@@ -238,7 +238,7 @@ class ExtraSelect:
         buttons.button_data('Preset', 'extra convert preset_mode')
         buttons.button_data('Resolution', 'extra convert resolution_mode')
         
-        bit_depth_button_text = f"{'✓ ' if self.executor.data.get('bit_depth') == '10bit' else ''}10bit"
+        bit_depth_button_text = f"10bit"
         buttons.button_data(bit_depth_button_text, 'extra convert bit_depth_toggle')
         
         buttons.button_data('FPS', 'extra convert fps_mode')
@@ -258,7 +258,7 @@ class ExtraSelect:
                 'Please select a CRF value:\n'
                 '<i>Lower value means higher quality but larger size.</i>')
         
-        for crf_value in ['5', '10', '12', '14', '16', '18', '20', '21', '23', '25', '28', '30']:
+        for crf_value in ['18', '21', '23', '25', '28']:
             buttons.button_data(f'CRF {crf_value}', f'extra convert crf_set {crf_value}')
         
         buttons.button_data('Custom CRF', 'extra convert custom_crf_input')
@@ -350,11 +350,11 @@ class ExtraSelect:
         text = (f'<b>BIT DEPTH CONVERT SETTINGS ~ {self._listener.tag}</b>\n'
                 f'<code>{self.executor.name}</code>\n\n'
                 'Please select a bit depth:')
-
-        bit_depths = ['8bit', '10bit']
-        for depth in bit_depths:
-            buttons.button_data(depth, f'extra convert bit_depth_set {depth}')
-
+        
+        current_depth = self.executor.data.get('bit_depth', '8bit')
+        
+        buttons.button_data(f"✓ {current_depth}", f'extra convert bit_depth_set {current_depth}')
+        
         buttons.button_data('Back', 'extra convert custom_options', 'footer')
         buttons.button_data('Cancel', 'extra cancel', 'footer')
 
@@ -519,7 +519,7 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                 obj.executor.data = {}
             if 'streams' not in obj.executor.data:
                 obj.executor.data['streams'] = []
-
+            
             match data[2]:
                 case 'crf_mode':
                     await obj._select_crf_quality(obj.executor.data['streams'])
