@@ -266,9 +266,15 @@ class ExtraSelect:
                 f'<code>{self.executor.name}</code>\n\n'
                 'Please select a video codec:')
         
-        vcodecs = ['libx264', 'libx265', 'copy', 'hevc']
-        for vcodec in vcodecs:
-            buttons.button_data(vcodec, f'extra convert vcodec_set {vcodec}')
+        vcodecs = [
+            ('H.264/AVC', 'libx264'), 
+            ('H.265/HEVC', 'libx265'), 
+            ('VP9', 'libvpx-vp9'), 
+            ('AV1', 'libsvtav1'), 
+            ('Copy', 'copy')
+        ]
+        for name, value in vcodecs:
+            buttons.button_data(name, f'extra convert vcodec_set {value}')
         
         buttons.button_data('Back', 'extra convert advanced_options', 'footer')
         buttons.button_data('Cancel', 'extra cancel', 'footer')
@@ -474,7 +480,7 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             match data[2]:
                 case 'resolution_set':
                     obj.executor.data['resolution'] = data[3]
-                    obj.executor.data.setdefault('vcodec', 'copy')
+                    obj.executor.data.setdefault('vcodec', 'libx264')
                     await obj._select_advanced_options(obj.executor.data['streams'])
                 case 'crf_mode':
                     await obj._select_crf_quality(obj.executor.data['streams'])
