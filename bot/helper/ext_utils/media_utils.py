@@ -1,5 +1,5 @@
 from aiofiles.os import makedirs
-from aiofiles.ospath import isdir, exists  # Added exists if needed
+from aiofiles.ospath import isdir, exists
 from aioshutil import move
 from ast import literal_eval
 from asyncio import create_subprocess_exec, gather, sleep, wait_for
@@ -65,7 +65,6 @@ async def is_multi_streams(path):
 
 
 async def get_media_info(path):
-    # Added a check to handle directories gracefully
     if await isdir(path):
         LOGGER.warning('Get Media Info: %s: Is a directory', path)
         return 0, None, None
@@ -321,7 +320,6 @@ class FFProgress:
                 time_str = progress.get('time')
                 size_str = progress.get('size', '0')
                 
-                # Safely parse the 'size' string with different units
                 try:
                     size_match = re_search(r'(\d+)', size_str)
                     if size_match:
@@ -337,23 +335,19 @@ class FFProgress:
                 except (ValueError, KeyError):
                     self._processed_bytes = 0
 
-                # Safely parse the 'time' string
                 if time_str and ':' in time_str:
                     try:
                         hh, mm, sms = time_str.split(':')
                         time_to_second = (int(hh) * 3600) + (int(mm) * 60) + float(sms)
                         
-                        # Fetch duration only once if not already set.
                         if not self._duration:
                             self._duration = (await get_media_info(self.path))[0]
                         
-                        # FIX: Add a conditional check to prevent float division by zero.
                         if self._duration > 0:
                             self._percentage = f'{round((time_to_second / self._duration) * 100, 2)}%'
                         else:
                             self._percentage = '0%'
                         
-                        # FIX: Add a conditional check for speed and duration to prevent division by zero.
                         try:
                             speed_val = float(progress.get('speed', '0').strip('x'))
                             if speed_val > 0 and self._duration > 0:
@@ -367,3 +361,93 @@ class FFProgress:
                     self._processed_bytes = await get_path_size(self.outfile)
                     await sleep(0.5)
                     continue
+
+
+class SampleVideo(FFProgress):
+    def __init__(self, listener, duration, partDuration, gid):
+        self.listener = listener
+        self.path = ''
+        self.name = ''
+        self.outfile = ''
+        self.size = 0
+        self._duration = duration
+        self._partduration = partDuration
+        self._gid = gid
+        self._start_time = time()
+        super().__init__()
+
+    async def create(self, video_file: str, oneFile: bool=False):
+        filter_complex = ''
+        self.path = video_file
+        dir, name = video_file.rsplit('/', 1)
+        self.outfile = ospath.join(dir, f'SAMPLE.{name}')
+        segments = [(0, self._partduration)]
+        duration = (await get_media_info(video_file))[0]
+        remaining_duration = duration - (self._partduration * 2)
+        parts = (self._duration - (self._partduration * 2)) // self._partduration
+        time_interval = remaining_duration // parts
+        next_segment = time_interval
+        for _ in range(parts):
+            segments.append((next_segment, next_segment + self._partduration))
+            next_segment += time_interval
+        segments.append((duration - self._partduration, duration))
+
+        for i, (start, end) in enumerate(segments):
+            filter_complex += f"[0:v]trim=start={start}:end={end},setpts=PTS-STARTPTS[v{i}]; "
+            filter_complex += f"[0:a]atrim=start={start}:end={end},asetpts=PTS-STARTPTS[a{i}]; "
+
+        for i in range(len(segments)):
+            filter_complex += f"[v{i}][a{i}]"
+
+        filter_complex += f"concat=n={len(segments)}:v=1:a=1[vout][aout]"
+
+        cmd = [FFMPEG_NAME, '-hide_banner', '-i', video_file, '-filter_complex', filter_complex, '-map', '[vout]',
+                '-map', '[aout]', '-c:v', 'libx264', '-c:a', 'aac', '-threads', f'{cpu_count()//2}', self.outfile]
+
+        if self.listener.suproc == 'cancelled':
+            return False
+
+        self.name, self.size = ospath.basename(video_file), await get_path_size(video_file)
+        self.listener.suproc = await create_subprocess_exec(*cmd, stderr=PIPE)
+        _, code = await gather(self.progress(), self.listener.suproc.wait())
+
+        if code == -9:
+            return False
+        if code == 0:
+            if oneFile:
+                newDir, _ = ospath.splitext(video_file)
+                await makedirs(newDir, exist_ok=True)
+                await gather(move(video_file, ospath.join(newDir, name)), move(self.outfile, ospath.join(newDir, f'SAMPLE.{name}')))
+                return newDir
+            return True
+
+        LOGGER.error('%s. Something went wrong while creating sample video, mostly file is corrupted. Path: %s', (await self.listener.suproc.stderr.read()).decode().strip(), video_file)
+        return video_file
+
+
+async def createArchive(listener, scr_path, dest_path, size, pswd, mpart=False):
+    cmd = ['7z', f'-v{listener.splitSize}b', 'a', '-mx=0', f'-p{pswd}', dest_path, scr_path]
+    cmd.extend(f'-xr!*.{ext}' for ext in listener.extensionFilter)
+    if listener.isLeech and int(size) > listener.splitSize or mpart and int(size) > listener.splitSize:
+        if not pswd:
+            del cmd[4]
+        LOGGER.info('Zip: orig_path: %s, zip_path: %s.0*', scr_path, dest_path)
+    else:
+        del cmd[1]
+        if not pswd:
+            del cmd[3]
+        LOGGER.info('Zip: orig_path: %s, zip_path: %s', scr_path, dest_path)
+    async with subprocess_lock:
+        if listener.suproc == 'cancelled':
+            return
+        listener.suproc = await create_subprocess_exec(*cmd, stderr=PIPE)
+    _, stderr = await listener.suproc.communicate()
+    code = listener.suproc.returncode
+    if code == -9:
+        return
+    if code == 0:
+        if not listener.seed:
+            await clean_target(scr_path, True)
+        return True
+    LOGGER.error('%s. Unable to zip this path: %s', stderr.decode().strip(), scr_path)
+    return True
