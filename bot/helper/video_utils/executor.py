@@ -310,11 +310,11 @@ class VidEcxecutor(FFProgress):
                 
                 vfilters = []
                 
-                # Set video codec
+                # Set video codec, default to libx265 if not specified
                 vcodec = self.data.get('vcodec')
                 if vcodec == 'hevc':
                     cmd.extend(['-c:v', 'libx265'])
-                elif vcodec:
+                elif vcodec and vcodec != 'copy':
                     cmd.extend(['-c:v', vcodec])
                 else: # Default behavior if not specified
                     cmd.extend(['-c:v', 'copy'])
