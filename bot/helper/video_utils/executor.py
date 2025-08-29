@@ -311,9 +311,12 @@ class VidEcxecutor(FFProgress):
                 vfilters = []
                 # Set video codec
                 vcodec = self.data.get('vcodec')
-                if not vcodec:
-                    vcodec = 'libx265'
-                cmd.extend(['-c:v', vcodec])
+                if vcodec and vcodec != 'copy':
+                    cmd.extend(['-c:v', vcodec])
+                elif vcodec == 'hevc':
+                    cmd.extend(['-c:v', 'libx265'])
+                else: # Default behavior if not specified
+                    cmd.extend(['-c:v', 'libx264'])
                 
                 # Set CRF, if available
                 if 'crf' in self.data:
@@ -344,6 +347,7 @@ class VidEcxecutor(FFProgress):
                 
                 # Map streams
                 cmd.extend(['-map', '0:v:0', '-map', '0:a:?', '-map', '0:s:?', '-c:a', 'copy', '-c:s', 'copy', self.outfile])
+
             else:
                 # Default conversion (e.g., to 1080p, 720p, etc.)
                 cmd = [FFMPEG_NAME, '-hide_banner', '-ignore_unknown', '-y', '-i', self.path, '-map', '0:v:0',
@@ -370,7 +374,7 @@ class VidEcxecutor(FFProgress):
             base_dir, (streams, _), self.size = await gather(self._name_base_dir(main_video, 'Remove', multi),
                                                              get_metavideo(main_video), get_path_size(main_video))
         self._start_handler(streams)
-        await gather(self._send_status(), self.event.wait())
+await gather(self._send_status(), self.event.wait())
         await self._queue()
         if self.is_cancel:
             return
