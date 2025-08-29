@@ -4,7 +4,7 @@ from asyncio import Event, wait_for, wrap_future, gather
 from functools import partial
 from pyrogram.filters import regex, user
 from pyrogram.handlers import CallbackQueryHandler
-from pyrogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.types import CallbackQuery
 from time import time
 
 from bot import VID_MODE
@@ -30,7 +30,8 @@ class ExtraSelect:
     @new_thread
     async def _event_handler(self):
         pfunc = partial(cb_extra, obj=self)
-        handler = self._listener.client.add_handler(CallbackQueryHandler(pfunc, filters=regex('^extra') & user(self._listener.user_id)), group=-1)
+        handler = self._listener.client.add_handler(
+            CallbackQueryHandler(pfunc, filters=regex('^extra') & user(self._listener.user_id)), group=-1)
         try:
             await wait_for(self.event.wait(), timeout=180)
         except:
@@ -44,14 +45,17 @@ class ExtraSelect:
         else:
             await editMessage(text, self._reply, buttons)
 
-    def _streams_select(self, streams: dict=None):
+    def _streams_select(self, streams: dict = None):
         buttons = ButtonMaker()
         if not self.executor.data:
             self.executor.data = {}
             self.executor.data.setdefault('stream', {})
             self.executor.data['sdata'] = []
             for stream in streams:
-                indexmap, codec_name, codec_type, lang = stream.get('index'), stream.get('codec_name'), stream.get('codec_type'), stream.get('tags', {}).get('language')
+                indexmap = stream.get('index')
+                codec_name = stream.get('codec_name')
+                codec_type = stream.get('codec_type')
+                lang = stream.get('tags', {}).get('language')
                 if not lang:
                     lang = str(indexmap)
                 if codec_type not in ['video', 'audio', 'subtitle']:
@@ -60,11 +64,13 @@ class ExtraSelect:
                     self.executor.data['is_audio'] = True
                 elif codec_type == 'subtitle':
                     self.executor.data['is_sub'] = True
-                self.executor.data['stream'][indexmap] = {'info': f'{codec_type.title()} ~ {lang.upper()}',
-                                                          'name': codec_name,
-                                                          'map': indexmap,
-                                                          'type': codec_type,
-                                                          'lang': lang}
+                self.executor.data['stream'][indexmap] = {
+                    'info': f'{codec_type.title()} ~ {lang.upper()}',
+                    'name': codec_name,
+                    'map': indexmap,
+                    'type': codec_type,
+                    'lang': lang
+                }
         mode, ddict = self.executor.mode, self.executor.data
         for key, value in ddict['stream'].items():
             if mode == 'extract':
@@ -77,9 +83,9 @@ class ExtraSelect:
                         f'<b></b>Audio Format: <b>{audext.upper()}</b>\n'
                         f'<b></b>Subtitle Format: <b>{subext.upper()}</b>\n'
                         f"<b></b>Alternative Mode: <b>{'✓ Enable' if ddict.get('alt_mode') else 'Disable'}</b>\n\n"
-                        'Select avalilable stream below to unpack!')
+                        'Select available stream below to unpack!')
             elif mode == 'swap_stream':
-                pass # The new swap_stream_select method handles this
+                pass  # Handled in swap_stream_select method
             else:
                 if value['type'] != 'video':
                     buttons.button_data(value['info'], f'extra {mode} {key}')
@@ -87,12 +93,13 @@ class ExtraSelect:
                         f'<code>{self.executor.name}</code>\n'
                         f'File Size: <b>{get_readable_file_size(self.executor.size)}</b>\n')
                 if sdata := ddict.get('sdata'):
-                    text += '\nStream will removed:\n'
+                    text += '\nStream will be removed:\n'
                     for i, sindex in enumerate(sdata, start=1):
                         text += f"{i}. {ddict['stream'][sindex]['info']}\n".replace('✓ ', '')
-                text += '\nSelect avalilable stream below!'
+                text += '\nSelect available stream below!'
         if mode == 'extract':
-            buttons.button_data('✓ ALT Mode' if ddict.get('alt_mode') else 'ALT Mode', f"extra {mode} alt {ddict.get('alt_mode', False)}", 'footer')
+            buttons.button_data('✓ ALT Mode' if ddict.get('alt_mode') else 'ALT Mode',
+                                f"extra {mode} alt {ddict.get('alt_mode', False)}", 'footer')
         if ddict.get('is_sub'):
             buttons.button_data('All Subs', f'extra {mode} subtitle')
         if ddict.get('is_audio'):
@@ -106,7 +113,7 @@ class ExtraSelect:
             buttons.button_data('Reset', f'extra {mode} reset', 'header')
             buttons.button_data('Reverse', f'extra {mode} reverse', 'header')
             buttons.button_data('Continue', f'extra {mode} continue', 'footer')
-        text += f'\n\n<i>Time Out: {get_readable_time(180 - (time()-self._time))}</i>'
+        text += f'\n\n<i>Time Out: {get_readable_time(180 - (time() - self._time))}</i>'
         return text, buttons.build_menu(2)
 
     def set_default_audio_stream(self, streams: list[dict]):
@@ -120,7 +127,9 @@ class ExtraSelect:
         self.set_default_audio_stream(streams)
         buttons = ButtonMaker()
         for stream in streams:
-            indexmap, codec_type, lang = stream.get('index'), stream.get('codec_type'), stream.get('tags', {}).get('language')
+            indexmap = stream.get('index')
+            codec_type = stream.get('codec_type')
+            lang = stream.get('tags', {}).get('language')
             if not lang:
                 lang = str(indexmap)
             if codec_type == 'video' and indexmap == 0:
@@ -131,27 +140,28 @@ class ExtraSelect:
                 buttons.button_data(f'Audio ~ {lang.upper()}', f'extra compress {indexmap}')
         buttons.button_data('Continue', 'extra compress 0')
         buttons.button_data('Cancel', 'extra cancel')
-        await self.update_message(f'{self._listener.tag}, Select available audio or press <b>Continue (no audio)</b>.\n<code>{self.executor.name}</code>', buttons.build_menu(2))
+        await self.update_message(f'{self._listener.tag}, Select available audio or press <b>Continue (no audio)</b>.\n'
+                                  f'<code>{self.executor.name}</code>', buttons.build_menu(2))
 
     async def rmstream_select(self, streams: dict):
         self.executor.data = {}
         await self.update_message(*self._streams_select(streams))
-    
+
     async def swap_stream_select(self, streams: dict):
         if not self.executor.data:
             self.executor.data = {}
         self.executor.data.update({'streams': streams, 'remaps': self.swap_selection['remaps']})
         self.set_default_audio_stream(streams)
         buttons = ButtonMaker()
-        
+
         text = (f"<b>STREAM REORDER SETTINGS ~ {self._listener.tag}</b>\n"
                 f"<code>{self.executor.name}</code>\n"
                 f"File Size: <b>{get_readable_file_size(self.executor.size)}</b>\n\n")
 
         all_streams = [s for s in streams if s['codec_type'] == 'audio']
-        
+
         reordered_streams = self.executor.data.get('remaps', {})
-        
+
         text += "<b>Current Audio Order:</b>\n"
         for s in all_streams:
             lang = s.get('tags', {}).get('language', f'#{s.get("index")}')
@@ -164,10 +174,10 @@ class ExtraSelect:
             lang = s.get('tags', {}).get('language', f'#{s.get("index")}')
             button_text = f"✓ Audio ({s['index']}) ({lang.title()})" if s['index'] in reordered_streams else f"Audio ({s['index']}) ({lang.title()})"
             buttons.button_data(button_text, f"extra swap_stream_select {s['index']}")
-        
+
         buttons.button_data('Cancel', 'extra cancel', 'footer')
         buttons.button_data('Continue ✓', 'extra swap_continue', 'footer')
-        
+
         await self.update_message(text, buttons.build_menu(2))
 
     async def _select_swap_position(self, selected_stream_index: int, total_streams: int):
@@ -176,25 +186,23 @@ class ExtraSelect:
                 f"<code>{self.executor.name}</code>\n"
                 f"Selected Stream: <b>{selected_stream_index}</b>\n\n"
                 f"Select the new position for this stream:")
-        
-        # Determine occupied positions from remaps
+
         occupied_positions = list(self.swap_selection['remaps'].values())
-        
-        # Dynamically create buttons for available positions
+
         for i in range(1, total_streams + 1):
             if i in occupied_positions:
                 continue
             buttons.button_data(str(i), f"extra swap_position {i}")
-        
+
         buttons.button_data('Back', 'extra swap_back', 'footer')
         buttons.button_data('Cancel', 'extra cancel', 'footer')
-        
+
         await self.update_message(text, buttons.build_menu(5))
 
     async def convert_select(self, streams: dict):
         buttons = ButtonMaker()
         hvid = '1080p'
-        resulution = {'1080p': 'Convert 1080p',
+        resolution = {'1080p': 'Convert 1080p',
                       '720p': 'Convert 720p',
                       '540p': 'Convert 540p',
                       '480p': 'Convert 480p',
@@ -202,40 +210,43 @@ class ExtraSelect:
         for stream in streams:
             if stream['codec_type'] == 'video':
                 vid_height = f'{stream["height"]}p'
-                if vid_height in resulution:
+                if vid_height in resolution:
                     hvid = vid_height
                 break
-        keys = list(resulution)
-        for key in keys[keys.index(hvid)+1:]:
-            buttons.button_data(resulution[key], f'extra convert {key}')
+        keys = list(resolution)
+        for key in keys[keys.index(hvid) + 1:]:
+            buttons.button_data(resolution[key], f'extra convert {key}')
         buttons.button_data('Cancel', 'extra cancel', 'footer')
-        await self.update_message(f'{self._listener.tag}, Select available resulution to convert.\n<code>{self.executor.name}</code>', buttons.build_menu(2))
+        await self.update_message(f'{self._listener.tag}, Select available resolution to convert.\n<code>{self.executor.name}</code>', buttons.build_menu(2))
 
     async def subsync_select(self, streams: dict):
         buttons = ButtonMaker()
         text = ''
         index = 1
         if not self.status:
-            for possition, file in self.executor.data['list'].items():
+            for position, file in self.executor.data['list'].items():
                 if file.endswith(('srt', '.ass')):
-                    ref_file = self.executor.data['final'].get(possition, {}).get('ref', '')
+                    ref_file = self.executor.data['final'].get(position, {}).get('ref', '')
                     text += f'{index}. {file} {"✓ " if ref_file else ""}\n'
                     but_txt = f'✓ {index}' if ref_file else index
-                    buttons.button_data(but_txt, f'extra subsync {possition}')
+                    buttons.button_data(but_txt, f'extra subsync {position}')
                     index += 1
             buttons.button_data('Cancel', 'extra cancel', 'footer')
             if self.executor.data['final']:
                 buttons.button_data('Continue', 'extra subsync continue', 'footer')
         else:
-            file: dict = self.executor.data['list'][self.status]
-            text = (f'Current: <b>{file}</b>\n'
-                    f'References: <b>{ref}</b>\n' if (ref := self.executor.data['final'].get(self.status, {}).get('ref')) else ''
-                    '\nSelect Available References Below!\n')
+            file = self.executor.data['list'][self.status]
+            text = (
+                f'Current: <b>{file}</b>\n'
+                f'References: <b>{ref}</b>\n' if (
+                    ref := self.executor.data['final'].get(self.status, {}).get('ref')
+                ) else ''
+            ) + '\nSelect Available References Below!\n'
             self.executor.data['final'][self.status] = {'file': file}
-            for possition, file in self.executor.data['list'].items():
-                if possition != self.status and file not in self.executor.data['final'].values():
+            for position, file in self.executor.data['list'].items():
+                if position != self.status and file not in self.executor.data['final'].values():
                     text += f'{index}. {file}\n'
-                    buttons.button_data(index, f'extra subsync select {possition}')
+                    buttons.button_data(index, f'extra subsync select {position}')
                     index += 1
         await self.update_message(text, buttons.build_menu(5))
 
@@ -248,7 +259,7 @@ class ExtraSelect:
                 match codec_name:
                     case 'mp3':
                         ext[0] = 'ac3'
-                    case 'aac' | 'ac3' | 'ac3' | 'eac3' | 'm4a' | 'mka' | 'wav' as value:
+                    case 'aac' | 'ac3' | 'eac3' | 'm4a' | 'mka' | 'wav' as value:
                         ext[0] = value
                     case _:
                         ext[0] = 'aac'
@@ -293,22 +304,17 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             if not old_stream_index:
                 await query.answer("Please select a stream first!", show_alert=True)
                 return
-
             new_position = int(data[2])
             obj.swap_selection['selected_stream'] = None
-            
             remaps = obj.executor.data.get('remaps', {})
-
             if new_position in remaps.values():
                 await query.answer(f"Position {new_position} is already taken. Please choose another position.", show_alert=True)
                 obj.swap_selection['selected_stream'] = old_stream_index
                 total_streams = len([s for s in obj.executor.data['streams'] if s['codec_type'] == 'audio'])
                 await obj._select_swap_position(old_stream_index, total_streams)
                 return
-
             remaps[old_stream_index] = new_position
             obj.executor.data['remaps'] = remaps
-            
             await obj.swap_stream_select(obj.executor.data['streams'])
         case 'swap_back':
             await query.answer()
@@ -369,7 +375,7 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                         ddict['sdata'] = new_sdata
                         await obj.update_message(*obj._streams_select())
                     else:
-                        await query.answer('No any selected stream to revers!', True)
+                        await query.answer('No any selected stream to reverse!', True)
                 case value:
                     await query.answer()
                     mapindex = int(value)
