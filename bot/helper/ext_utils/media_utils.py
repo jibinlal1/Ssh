@@ -1,4 +1,4 @@
-from aiofiles.os import path as aiopath, makedirs
+from aiofiles.os import path as aiopath, makedirs, isdir
 from aioshutil import move
 from ast import literal_eval
 from asyncio import create_subprocess_exec, gather, sleep, wait_for
@@ -64,6 +64,10 @@ async def is_multi_streams(path):
 
 
 async def get_media_info(path):
+    # Added a check to handle directories gracefully
+    if await isdir(path):
+        LOGGER.warning('Get Media Info: %s: Is a directory', path)
+        return 0, None, None
     try:
         result = await cmd_exec(['ffprobe', '-hide_banner', '-loglevel', 'error', '-print_format', 'json', '-show_format', path])
         if res := result[1]:
@@ -337,11 +341,22 @@ class FFProgress:
                     try:
                         hh, mm, sms = time_str.split(':')
                         time_to_second = (int(hh) * 3600) + (int(mm) * 60) + float(sms)
+                        
+                        # Fetch duration only once if not already set.
                         if not self._duration:
                             self._duration = (await get_media_info(self.path))[0]
-                        self._percentage = f'{round((time_to_second / self._duration) * 100, 2)}%'
+                        
+                        # FIX: Add a conditional check to prevent float division by zero.
+                        if self._duration > 0:
+                            self._percentage = f'{round((time_to_second / self._duration) * 100, 2)}%'
+                        else:
+                            self._percentage = '0%'
+                        
+                        # FIX: Add a conditional check for speed and duration to prevent division by zero.
                         try:
-                            self._eta = (self._duration / float(progress.get('speed', '0').strip('x'))) - ((time() - start_time))
+                            speed_val = float(progress.get('speed', '0').strip('x'))
+                            if speed_val > 0 and self._duration > 0:
+                                self._eta = (self._duration / speed_val) - ((time() - start_time))
                         except (ValueError, ZeroDivisionError):
                             pass
                     except (ValueError, KeyError) as e:
