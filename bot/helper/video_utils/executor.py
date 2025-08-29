@@ -316,6 +316,8 @@ class VidEcxecutor(FFProgress):
                     cmd.extend(['-c:v', 'libx265'])
                 elif vcodec:
                     cmd.extend(['-c:v', vcodec])
+                else: # Default behavior if not specified
+                    cmd.extend(['-c:v', 'libx264'])
                 
                 # Set CRF, if available
                 if 'crf' in self.data:
