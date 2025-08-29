@@ -26,14 +26,6 @@ class ExtraSelect:
         self.extension: list[str] = [None, None, 'mkv']
         self.status = ''
         self.swap_selection = {'selected_stream': None, 'remaps': {}}
-        # New attributes for advanced conversion
-        self.quality = ''
-        self.advanced_options = {
-            'crf': '25',
-            'preset': 'veryfast',
-            'vcodec': 'libx264',
-            'vbitrate': '3000k'
-        }
 
     @new_thread
     async def _event_handler(self):
@@ -207,6 +199,26 @@ class ExtraSelect:
 
         await self.update_message(text, buttons.build_menu(5))
 
+    async def convert_select(self, streams: dict):
+        buttons = ButtonMaker()
+        hvid = '1080p'
+        resolution = {'1080p': 'Convert 1080p',
+                      '720p': 'Convert 720p',
+                      '540p': 'Convert 540p',
+                      '480p': 'Convert 480p',
+                      '360p': 'Convert 360p'}
+        for stream in streams:
+            if stream['codec_type'] == 'video':
+                vid_height = f'{stream["height"]}p'
+                if vid_height in resolution:
+                    hvid = vid_height
+                break
+        keys = list(resolution)
+        for key in keys[keys.index(hvid) + 1:]:
+            buttons.button_data(resolution[key], f'extra convert {key}')
+        buttons.button_data('Cancel', 'extra cancel', 'footer')
+        await self.update_message(f'{self._listener.tag}, Select available resolution to convert.\n<code>{self.executor.name}</code>', buttons.build_menu(2))
+
     async def subsync_select(self, streams: dict):
         buttons = ButtonMaker()
         text = ''
@@ -270,111 +282,11 @@ class ExtraSelect:
         if self.is_cancel:
             self._listener.suproc = 'cancelled'
             await self._listener.onUploadError(f'{VID_MODE[self.executor.mode]} stopped by user!')
-            
-    # --- New Methods for Advanced Conversion ---
-    async def convert_select(self, streams: dict):
-        buttons = ButtonMaker()
-        hvid = '1080p'
-        resolution = {'1080p': 'Convert 1080p',
-                      '720p': 'Convert 720p',
-                      '540p': 'Convert 540p',
-                      '480p': 'Convert 480p',
-                      '360p': 'Convert 360p'}
-        for stream in streams:
-            if stream['codec_type'] == 'video':
-                vid_height = f'{stream["height"]}p'
-                if vid_height in resolution:
-                    hvid = vid_height
-                break
-        keys = list(resolution)
-        # Ensure we don't go out of bounds if hvid is not in keys
-        start_index = keys.index(hvid) + 1 if hvid in keys else 0
-        for key in keys[start_index:]:
-            buttons.button_data(resolution[key], f'extra convert {key}')
-        buttons.button_data('Cancel', 'extra cancel', 'footer')
-        await self.update_message(f'{self._listener.tag}, Select available resolution to convert.\n<code>{self.executor.name}</code>', buttons.build_menu(2))
-
-    async def advanced_options_menu(self):
-        buttons = ButtonMaker()
-        opts = self.advanced_options
-        buttons.button_data(f"CRF ({opts['crf']})", "extra adv_opts crf")
-        buttons.button_data(f"Preset ({opts['preset']})", "extra adv_opts preset")
-        buttons.button_data(f"Codec ({opts['vcodec']})", "extra adv_opts vcodec")
-        buttons.button_data(f"Bitrate ({opts['vbitrate']})", "extra adv_opts vbitrate")
-        buttons.button_data('Continue', 'extra adv_opts continue', 'footer')
-        buttons.button_data('Cancel', 'extra cancel', 'footer')
-        await self.update_message(f"<b>Advanced Options for {self.quality}p</b>", buttons.build_menu(2))
-
-    async def crf_selection(self):
-        buttons = ButtonMaker()
-        for i in range(1, 7):
-            val = i * 4 + 1
-            buttons.button_data(f"CRF {val}", f"extra adv_crf {val}")
-        buttons.button_data('Back', 'extra adv_opts back', 'footer')
-        await self.update_message("Select a CRF value (lower is better quality):", buttons.build_menu(3))
-
-    async def preset_selection(self):
-        buttons = ButtonMaker()
-        presets = ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"]
-        for preset in presets:
-            buttons.button_data(preset.capitalize(), f"extra adv_preset {preset}")
-        buttons.button_data('Back', 'extra adv_opts back', 'footer')
-        await self.update_message("Select a preset (slower is better quality):", buttons.build_menu(3))
-
-    async def vcodec_selection(self):
-        buttons = ButtonMaker()
-        codecs = ["libx264", "libx265", "vp9"]
-        for codec in codecs:
-            buttons.button_data(codec, f"extra adv_vcodec {codec}")
-        buttons.button_data('Back', 'extra adv_opts back', 'footer')
-        await self.update_message("Select a video codec:", buttons.build_menu(3))
-
-    async def vbitrate_selection(self):
-        buttons = ButtonMaker()
-        for i in range(1, 7):
-            val = f"{i * 500}k"
-            buttons.button_data(val, f"extra adv_vbitrate {val}")
-        buttons.button_data('Back', 'extra adv_opts back', 'footer')
-        await self.update_message("Select a video bitrate:", buttons.build_menu(3))
 
 
 async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
     data = query.data.split()
-    action = data[1]
-
-    # --- New cases for advanced options ---
-    if action == "adv_opts":
-        await query.answer()
-        sub_action = data[2]
-        if sub_action == "continue":
-            # Set data for executor and finalize
-            obj.executor.data = {
-                'quality': obj.quality,
-                **obj.advanced_options
-            }
-            obj.event.set()
-        elif sub_action == "back":
-            await obj.advanced_options_menu()
-        else: # crf, preset, etc.
-            await getattr(obj, f"{sub_action}_selection")()
-        return
-
-    if action.startswith("adv_"):
-        await query.answer()
-        opt_type = action.split('_')[1]
-        value = data[2]
-        if opt_type == "crf":
-            obj.advanced_options['crf'] = value
-        elif opt_type == "preset":
-            obj.advanced_options['preset'] = value
-        elif opt_type == "vcodec":
-            obj.advanced_options['vcodec'] = value
-        elif opt_type == "vbitrate":
-            obj.advanced_options['vbitrate'] = value
-        await obj.advanced_options_menu()
-        return
-
-    match action:
+    match data[1]:
         case 'cancel':
             await query.answer()
             obj.is_cancel = obj.executor.is_cancel = True
@@ -428,8 +340,8 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             obj.event.set()
         case 'convert':
             await query.answer()
-            obj.quality = data[2]
-            await obj.advanced_options_menu()
+            obj.executor.data = data[2]
+            obj.event.set()
         case 'rmstream':
             ddict: dict = obj.executor.data
             match data[2]:

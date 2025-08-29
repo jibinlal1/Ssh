@@ -20,7 +20,6 @@ from bot.helper.listeners import tasks_listener as task
 from bot.helper.telegram_helper.button_build import ButtonMaker
 from bot.helper.telegram_helper.filters import CustomFilters
 from bot.helper.telegram_helper.message_utils import sendMessage, editMessage, deleteMessage
-from bot.helper.video_utils.extra_selector import ExtraSelect
 
 
 class SelectMode():
@@ -136,7 +135,7 @@ class SelectMode():
                         buttons.button_data(f"{'✓ ' if await aiopath.exists(self.extra_data.get('subfile', '')) else ''}Sub File", 'vidtool subfile', 'header')
                     buttons.button_data('Font Style', 'vidtool fontstyle', 'header')
 
-            if self.mode in ('compress', 'watermark', 'convert') or self.extra_data.get('hardsub'):
+            if self.mode in ('compress', 'watermark') or self.extra_data.get('hardsub'):
                 buttons.button_data('Quality', 'vidtool quality', 'header')
             if self.mode == 'watermark':
                 buttons.button_data('Popup', 'vidtool popupwm', 'header')
@@ -157,13 +156,7 @@ class SelectMode():
                     buttons.button_data('Auto', 'vidtool sync_auto')
                 case 'quality':
                     bnum = 3
-                    qualities = ['1080p', '720p', '540p', '480p', '360p']
-                    if self.mode == 'convert':
-                        qualities = ['1080p', '720p', '480p', '360p'] # Different qualities for convert
-                    
-                    for key in qualities:
-                        buttons.button_data(f"{'✓ ' if self.extra_data.get('quality') == key else ''}{key}", f'vidtool quality {key}')
-
+                    [buttons.button_data(f"{'✓ ' if self.extra_data.get('quality') == key else ''}{key}", f'vidtool quality {key}') for key in ['1080p', '720p', '540p', '480p', '360p']]
                     buttons.button_data('<<', 'vidtool back', 'footer')
                     buttons.button_data('Done', 'vidtool done', 'footer')
                 case 'popupwm':
@@ -250,14 +243,8 @@ async def cb_vidtools(_, query: CallbackQuery, obj: SelectMode):
         await query.answer(f'{VID_MODE[data[1]]} has been disabled!', True)
         return
     await query.answer()
-    if data[1] == obj.mode and data[1] != 'quality':
+    if data[1] == obj.mode:
         return
-        
-    if data[1] == 'convert':
-        obj.mode = 'convert'
-        await obj.list_buttons('quality')
-        return
-
     match data[1]:
         case 'done':
             obj.event.set()
@@ -269,23 +256,10 @@ async def cb_vidtools(_, query: CallbackQuery, obj: SelectMode):
             obj.mode = 'Task has been cancelled!'
             obj.is_cancelled = True
             obj.event.set()
-        case 'quality':
+        case 'quality' | 'popupwm' as value:
             if len(data) == 3:
-                quality = data[2]
-                if obj.mode == 'convert':
-                    # Trigger the advanced selector
-                    obj.extra_data['quality'] = quality
-                    # The executor will get this data
-                    obj.event.set()
-                    return
-                else: # For compress/watermark
-                    obj.extra_data['quality'] = quality
-            await obj.list_buttons('quality')
-
-        case 'popupwm':
-            if len(data) == 3:
-                obj.extra_data['popupwm'] = int(data[2])
-            await obj.list_buttons('popupwm')
+                obj.extra_data[value] = data[2] if value == 'quality' else int(data[2])
+            await obj.list_buttons(value)
         case 'hardsub':
             hmode = not bool(obj.extra_data.get('hardsub'))
             if not hmode and obj.mode == 'vid_sub':
