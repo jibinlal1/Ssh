@@ -2,9 +2,9 @@ from __future__ import annotations
 from ast import literal_eval
 from asyncio import Event, wait_for, wrap_future, gather
 from functools import partial
-from pyrogram.filters import regex, user
-from pyrogram.handlers import CallbackQueryHandler
-from pyrogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.filters import regex, user, text
+from pyrogram.handlers import CallbackQueryHandler, MessageHandler
+from pyrogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, Message
 from time import time
 
 from bot import VID_MODE
@@ -26,17 +26,19 @@ class ExtraSelect:
         self.extension: list[str] = [None, None, 'mkv']
         self.status = ''
         self.swap_selection = {'selected_stream': None, 'remaps': {}}
+        self._text_message = None
 
     @new_thread
     async def _event_handler(self):
-        pfunc = partial(cb_extra, obj=self)
-        handler = self._listener.client.add_handler(CallbackQueryHandler(pfunc, filters=regex('^extra') & user(self._listener.user_id)), group=-1)
+        cb_handler = self._listener.client.add_handler(CallbackQueryHandler(partial(cb_extra, obj=self), filters=regex('^extra') & user(self._listener.user_id)), group=-1)
+        text_handler = self._listener.client.add_handler(MessageHandler(partial(text_handler_extra, obj=self), filters=text & user(self._listener.user_id)), group=-1)
         try:
             await wait_for(self.event.wait(), timeout=180)
         except:
             self.event.set()
         finally:
-            self._listener.client.remove_handler(*handler)
+            self._listener.client.remove_handler(*cb_handler)
+            self._listener.client.remove_handler(*text_handler)
 
     async def update_message(self, text: str, buttons):
         if not self._reply:
@@ -249,7 +251,8 @@ class ExtraSelect:
                 'Please select a CRF value:\n'
                 '<i>Lower value means higher quality but larger size.</i>')
         
-        for crf_value in ['18', '21', '23', '25', '28']:
+        crf_values = ['5', '10', '12', '14', '16', '18', '20', '22', '24', '26', '28', '30']
+        for crf_value in crf_values:
             buttons.button_data(f'CRF {crf_value}', f'extra convert crf_set {crf_value}')
         
         buttons.button_data('Custom CRF', 'extra convert custom_crf_input')
@@ -347,7 +350,10 @@ class ExtraSelect:
         buttons.button_data('Cancel', 'extra cancel', 'footer')
         
         await self.update_message(prompt, buttons.build_menu(1))
-        self.event.set()
+        # The new text_handler will process the message and set the event.
+        await wait_for(self.event.wait(), timeout=60)
+        self.event.clear()
+
 
     async def subsync_select(self, streams: dict):
         buttons = ButtonMaker()
@@ -609,3 +615,30 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                 obj.executor.data.update({'key': int(value) if value.isdigit() else data[2:],
                                          'extension': obj.extension})
                 obj.event.set()
+
+async def text_handler_extra(_, message: Message, obj: ExtraSelect):
+    if not obj.status == 'awaiting_custom_input':
+        return
+    
+    key = obj.executor.data.get('custom_key')
+    value = message.text
+    
+    if key == 'crf':
+        try:
+            crf_value = int(value)
+            if 0 <= crf_value <= 51:
+                obj.executor.data['crf'] = crf_value
+                await message.delete()
+                await obj._select_advanced_options(obj.executor.data['streams'])
+            else:
+                await message.reply_text('Invalid CRF value. Please enter a number between 0 and 51.')
+                return
+        except (ValueError, TypeError):
+            await message.reply_text('Invalid input. Please enter a valid number for CRF.')
+            return
+            
+    # Add other custom inputs here (bitrate, resolution, etc.)
+
+    obj.status = ''
+    obj.executor.data.pop('custom_key', None)
+    obj.event.set()
