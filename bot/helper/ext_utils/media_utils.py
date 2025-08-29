@@ -1,4 +1,13 @@
-from aiofiles.os import path as aiopath, makedirs, isdir
+# Change this line:
+# from aiofiles.os import path as aiopath, makedirs, isdir
+
+# To this:
+from aiofiles.os import path as aiopath, makedirs
+
+# Then, in the get_media_info function, change:
+# if await isdir(path):
+# to this:
+if await aiopath.isdir(path):
 from aioshutil import move
 from ast import literal_eval
 from asyncio import create_subprocess_exec, gather, sleep, wait_for
