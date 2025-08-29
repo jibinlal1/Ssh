@@ -718,6 +718,18 @@ class VidEcxecutor(FFProgress):
                 map_args.extend(['-map', f'0:{s["index"]}'])
             
             cmd.extend(map_args)
+            
+                        # Clear all default audio dispositions
+            for s in audio_streams:
+                cmd.extend(['-disposition:a:{}'.format(s['index']), '0'])
+
+            # Set default disposition on first audio stream in new order
+            if new_audio_order:
+                first_audio_index = new_audio_order[sorted(new_audio_order.keys())[0]]
+                cmd.extend(['-disposition:a:{}'.format(first_audio_index), 'default'])
+
+
+
             cmd.extend(['-c', 'copy', self.outfile])
             
             await self._run_cmd(cmd)
