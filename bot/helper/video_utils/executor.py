@@ -45,7 +45,7 @@ class VidEcxecutor(FFProgress):
         self._gid = gid
         self._start_time = time()
         self._files = []
-        self._qual = {'1080p': '1920', '720p': '1280', '540p': '960', '480p': '854', '360p': '640'}
+        self._qual = {'4k': '3840', '2k': '2560', '1080p': '1920', '720p': '1280', '540p': '960', '480p': '854', '360p': '640'}
         super().__init__()
         self.is_cancel = False
 
