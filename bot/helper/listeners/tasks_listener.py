@@ -35,6 +35,7 @@ from bot.helper.video_utils.executor import VidEcxecutor
 class TaskListener(TaskConfig):
     def __init__(self):
         super().__init__()
+        # New attributes for advanced ffmpeg options
         self.crf = '25'
         self.preset = 'veryfast'
         self.vcodec = 'libx264'
@@ -106,7 +107,6 @@ class TaskListener(TaskConfig):
         await self.reName()
 
         up_path = ospath.join(self.dir, self.name)
-        # Call remove_www_prefix and update the path and name
         up_path = await self.remove_www_prefix(up_path)
         self.name = ospath.basename(up_path)
 
@@ -247,8 +247,6 @@ class TaskListener(TaskConfig):
                         msg += f'<b>SubFolders: </b>{folders}\n'
                     msg += f'<b>Files: </b>{files}\n'
             msg += f'<b>Source Link:</b>\n<code>{get_link(self.message, get_source=True)}</code>'
-            # (f'<b> Add: </b>{dt_date}\n'
-            # f'<b> At: </b>{dt_time} ({TIME_ZONE_TITLE})\n'
             if reply_to and is_media(reply_to):
                 await sendMedia(msg, chat_id, reply_to)
             else:
@@ -275,8 +273,6 @@ class TaskListener(TaskConfig):
             msg += (f'<b>Elapsed: </b>{get_readable_time(time() - self.message.date.timestamp())}\n'
                     f'<b>Cc: </b>{self.tag}\n'
                     f'<b>Action: </b>{action(self.message)}\n\n')
-            #     f'<b>Add: </b>{dt_date}\n'
-            #      f'<b>At: </b>{dt_time} ({TIME_ZONE_TITLE})\n\n')
             ONCOMPLETE_LEECH_LOG = config_dict['ONCOMPLETE_LEECH_LOG']
             if not files:
                 uploadmsg = await sendingMessage(msg, self.message, images, buttons.build_menu(2))
@@ -339,8 +335,6 @@ class TaskListener(TaskConfig):
             msg += (f'<b>Elapsed: </b>{get_readable_time(time() - self.message.date.timestamp())}\n'
                     f'<b>Cc: </b>{self.tag}\n'
                     f'<b>Action: </b>{action(self.message)}\n')
-                #  f'<b> Add: </b>{dt_date}\n'
-                #  f'<b> At: </b>{dt_time} ({TIME_ZONE_TITLE})')
             if link or rclonePath:
                 if self.isGofile:
                     golink = await sync_to_async(short_url, self.isGofile, self.user_id)
@@ -469,8 +463,6 @@ class TaskListener(TaskConfig):
                     f'<b>Action: </b>{action(self.message)}\n'
                     f'<b>Status: </b>#undone\n'
                     f'<b>On: </b>{"#clone" if self.isClone else "#download"}\n'
-                #  f'<b>Add: </b>{dt_date}\n'
-                #  f'<b>At: </b>{dt_time} ({TIME_ZONE_TITLE})\n'
                     f'<b>Source Link:</b>\n<code>{get_link(self.message, get_source=True)}</code>')
             if reply_to and is_media(reply_to):
                 await sendMedia(msg, chat_id, reply_to)
@@ -487,8 +479,6 @@ class TaskListener(TaskConfig):
         msg += (f'<bElapsed: </b>{get_readable_time(time() - self.message.date.timestamp())}\n'
                 f'<b>Cc:</b> {self.tag}\n'
                 f'<b>Action: </b>{action(self.message)}\n'
-            #     f'<b>Add: </b>{dt_date}\n'
-            #     f'<b>At: </b>{dt_time} ({TIME_ZONE_TITLE})\n'
                 f'<b>Due to:</b> {err_msg}')
         if listfile:
             await sendFile(self.message, listfile, msg, config_dict['IMAGE_HTML'])
@@ -543,8 +533,6 @@ class TaskListener(TaskConfig):
                     f'<b>Status: </b>{"#done" if "Seeding" in error else "#undone"}\n'
                     f'<b>On: </b>{"#clone" if self.isClone else "#upload"}\n'
                     f'<b>Source Link:</b>\n<code>{get_link(self.message, get_source=True)}</code>')
-                    #  f'<b> Add: </b>{dt_date}\n'
-                    #  f'<b> At: </b>{dt_time} ({TIME_ZONE_TITLE})\n'
             if reply_to and is_media(reply_to):
                 await sendMedia(msg, chat_id, reply_to)
             else:
@@ -561,8 +549,6 @@ class TaskListener(TaskConfig):
                 f'<b>Cc:</b> {self.tag}\n'
                 f'<b>Action: </b>{action(self.message)}\n'
                 f'<b>Due to:</b> {err_msg}')
-                #  f'<b> Add: </b>{dt_date}\n'
-                #  f'<b> At: </b>{dt_time} ({TIME_ZONE_TITLE})\n'
         if self.isGofile:
             buttons.button_link('GoFile Link', self.isGofile)
             if config_dict['SAVE_MESSAGE'] and self.isSuperChat:
