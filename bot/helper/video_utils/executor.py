@@ -310,14 +310,14 @@ class VidEcxecutor(FFProgress):
                 
                 vfilters = []
                 
-                # Set video codec, default to libx265 if not specified
+                # Set video codec
                 vcodec = self.data.get('vcodec')
                 if vcodec == 'hevc':
                     cmd.extend(['-c:v', 'libx265'])
                 elif vcodec:
                     cmd.extend(['-c:v', vcodec])
                 else: # Default behavior if not specified
-                    cmd.extend(['-c:v', 'libx264'])
+                    cmd.extend(['-c:v', 'copy'])
                 
                 # Set CRF, if available
                 if 'crf' in self.data:
@@ -698,6 +698,7 @@ class VidEcxecutor(FFProgress):
             await self._run_cmd(cmd, status)
             if self.is_cancel:
                 return
+        await gather(clean_target(wmpath), clean_target(subfile))
 
         return await self._final_path()
 
