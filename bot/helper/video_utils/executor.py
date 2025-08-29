@@ -168,7 +168,7 @@ class VidEcxecutor(FFProgress):
 
         return self._up_path
 
-    async def _name_base_dir(self, path, info: str=None, multi: bool=False):
+    async def _name_base_dir(self, path, info: str = None, multi: bool = False):
         base_dir, file_name = ospath.split(path)
         if not self.name or multi:
             if info:
@@ -195,7 +195,7 @@ class VidEcxecutor(FFProgress):
             LOGGER.error('%s. Failed to %s: %s', (await self.listener.suproc.stderr.read()).decode().strip(), VID_MODE[self.mode], self.outfile)
             self._files.clear()
 
-    # ... Other methods unchanged ...
+    # Other methods unchanged...
 
     async def _swap_streams(self):
         file_list = await self._get_files()
@@ -209,8 +209,10 @@ class VidEcxecutor(FFProgress):
             streams = self._metadata[0]
         else:
             main_video = file_list[0]
-            base_dir, (streams, _), self.size = await gather(self._name_base_dir(main_video, 'Swap', multi),
-                                                             get_metavideo(main_video), get_path_size(main_video))
+            base_dir, (streams, _), self.size = await gather(
+                self._name_base_dir(main_video, 'Swap', multi),
+                get_metavideo(main_video),
+                get_path_size(main_video))
 
         self._start_handler(streams)
         await gather(self._send_status(), self.event.wait())
@@ -233,16 +235,13 @@ class VidEcxecutor(FFProgress):
             cmd = [FFMPEG_NAME, '-y', '-i', self.path]
             map_args = []
 
-            # Get video, audio, and subtitle streams
             video_stream = next((s for s in streams if s['codec_type'] == 'video'), None)
             audio_streams = sorted([s for s in streams if s['codec_type'] == 'audio'], key=lambda s: s['index'])
             sub_streams = sorted([s for s in streams if s['codec_type'] == 'subtitle'], key=lambda s: s['index'])
 
-            # Map video stream
             if video_stream:
                 map_args.extend(['-map', f'0:{video_stream["index"]}'])
 
-            # Create dictionary for new audio order
             new_audio_order = {}
             for s in audio_streams:
                 if s['index'] in reorders:
@@ -253,21 +252,19 @@ class VidEcxecutor(FFProgress):
                         new_pos += 1
                     new_audio_order[new_pos] = s['index']
 
-            # Map audio streams in new order
             for pos in sorted(new_audio_order.keys()):
                 map_args.extend(['-map', f'0:{new_audio_order[pos]}'])
 
-            # Map subtitle streams
             for s in sub_streams:
                 map_args.extend(['-map', f'0:{s["index"]}'])
 
             cmd.extend(map_args)
 
-            # Remove all existing default flags on audio streams
+            # Clear all default audio dispositions
             for s in audio_streams:
                 cmd.extend(['-disposition:a:{}'.format(s['index']), '0'])
 
-            # Set default flag on first audio in new order
+            # Set default disposition on first audio stream in new order
             if new_audio_order:
                 first_audio_index = new_audio_order[sorted(new_audio_order.keys())[0]]
                 cmd.extend(['-disposition:a:{}'.format(first_audio_index), 'default'])
