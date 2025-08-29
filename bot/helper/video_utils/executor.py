@@ -88,6 +88,9 @@ class VidEcxecutor(FFProgress):
                 return
 
         try:
+            if self.mode == 'convert' and isinstance(self.data, dict):
+                return await self._vid_convert()
+            
             match self.mode:
                 case 'vid_vid':
                     return await self._merge_vids()
@@ -110,10 +113,12 @@ class VidEcxecutor(FFProgress):
                 case 'extract':
                     return await self._vid_extract()
                 case _:
-                    return await self._vid_convert()
+                    # Fallback to simple convert if advanced options not used
+                    return await self._vid_convert_simple()
         except Exception as e:
             LOGGER.error(e, exc_info=True)
         return self._up_path
+
 
     @new_task
     async def _start_handler(self, *args):
@@ -192,9 +197,87 @@ class VidEcxecutor(FFProgress):
         if self.listener.suproc == 'cancelled' or code == -9:
             self.is_cancel = True
         else:
-            LOGGER.error('%s. Failed to %s: %s', (await self.listener.suproc.stderr.read()).decode().strip(), VID_MODE[self.mode], self.outfile)
+            stderr = (await self.listener.suproc.stderr.read()).decode().strip()
+            LOGGER.error('%s. Failed to %s: %s', stderr, VID_MODE.get(self.mode, 'process'), self.outfile)
             self._files.clear()
 
+    async def _vid_convert(self):
+        file_list = await self._get_files()
+        if not file_list:
+            return self._up_path
+
+        await self._queue()
+        if self.is_cancel:
+            return
+
+        opts = self.data
+        quality = opts['quality']
+        vcodec = opts['vcodec']
+        preset = opts['preset']
+        crf = opts['crf']
+        vbitrate = opts['vbitrate']
+        
+        base_dir = self.listener.dir
+        await makedirs(base_dir, exist_ok=True)
+        
+        for file in file_list:
+            self.path = file
+            self.size = await get_path_size(self.path)
+            
+            base_name = ospath.basename(self.path).rsplit('.', 1)[0]
+            self.name = f"{base_name}_{quality}.mkv"
+            self.outfile = ospath.join(base_dir, self.name)
+            
+            self._files.append(self.path)
+            
+            cmd = [FFMPEG_NAME, '-hide_banner', '-ignore_unknown', '-y', '-i', self.path,
+                   '-vf', f'scale={self._qual[quality]}:-2',
+                   '-c:v', vcodec,
+                   '-preset', preset,
+                   '-crf', crf,
+                   '-b:v', vbitrate,
+                   '-map', '0:v:0',
+                   '-map', '0:a:?',
+                   '-map', '0:s:?',
+                   '-c:a', 'copy',
+                   '-c:s', 'copy',
+                   self.outfile]
+                   
+            await self._run_cmd(cmd)
+            if self.is_cancel:
+                return
+        
+        return await self._final_path()
+
+
+    async def _vid_convert_simple(self):
+        # This is a fallback for the old convert logic
+        file_list = await self._get_files()
+        if not file_list:
+            return self._up_path
+            
+        await self._queue()
+        if self.is_cancel:
+            return
+            
+        base_dir = self.listener.dir
+        await makedirs(base_dir, exist_ok=True)
+        
+        for file in file_list:
+            self.path = file
+            self.size = await get_path_size(self.path)
+            base_name = ospath.basename(self.path).rsplit('.', 1)[0]
+            self.name = f"{base_name}_converted.mkv"
+            self.outfile = ospath.join(base_dir, self.name)
+            self._files.append(self.path)
+            cmd = [FFMPEG_NAME, '-hide_banner', '-ignore_unknown', '-y', '-i', self.path, '-map', '0', '-c', 'copy', self.outfile]
+            await self._run_cmd(cmd)
+            if self.is_cancel:
+                return
+
+        return await self._final_path()
+
+    # --- Keep all your other methods like _vid_extract, _vid_trimmer, etc. ---
     async def _vid_extract(self):
         if file_list := await self._get_files():
             if self._metadata:
@@ -274,42 +357,6 @@ class VidEcxecutor(FFProgress):
 
         await gather(*[clean_target(file) for file in task_files])
         return await self._final_path(self._up_path)
-
-    async def _vid_convert(self):
-        file_list = await self._get_files()
-        multi = len(file_list) > 1
-        if not file_list:
-            return self._up_path
-
-        if self._metadata:
-            base_dir = self.listener.dir
-            await makedirs(base_dir, exist_ok=True)
-            streams = self._metadata[0]
-        else:
-            main_video = file_list[0]
-            base_dir, (streams, _), self.size = await gather(self._name_base_dir(main_video, 'Convert', len(file_list) > 1),
-                                                             get_metavideo(main_video), get_path_size(main_video))
-        self._start_handler(streams)
-        await gather(self._send_status(), self.event.wait())
-        await self._queue()
-        if self.is_cancel:
-            return
-        if not self.data:
-            return self._up_path
-        self.outfile = self._up_path
-        for file in file_list:
-            self.path = file
-            if not self._metadata:
-                _, self.size = await gather(self._name_base_dir(self.path, f'Convert-{self.data}', multi), get_path_size(self.path))
-            self.outfile = ospath.join(base_dir, self.name)
-            self._files.append(self.path)
-            cmd = [FFMPEG_NAME, '-hide_banner', '-ignore_unknown', '-y', '-i', self.path, '-map', '0:v:0',
-                   '-vf', f'scale={self._qual[self.data]}:-2', '-map', '0:a:?', '-map', '0:s:?', '-c:a', 'copy', '-c:s', 'copy', self.outfile]
-            await self._run_cmd(cmd)
-            if self.is_cancel:
-                return
-
-        return await self._final_path()
 
     async def _rm_stream(self):
         file_list = await self._get_files()
@@ -719,7 +766,7 @@ class VidEcxecutor(FFProgress):
             
             cmd.extend(map_args)
             
-                        # Clear all default audio dispositions
+            # Clear all default audio dispositions
             for s in audio_streams:
                 cmd.extend(['-disposition:a:{}'.format(s['index']), '0'])
 
@@ -727,8 +774,6 @@ class VidEcxecutor(FFProgress):
             if new_audio_order:
                 first_audio_index = new_audio_order[sorted(new_audio_order.keys())[0]]
                 cmd.extend(['-disposition:a:{}'.format(first_audio_index), 'default'])
-
-
 
             cmd.extend(['-c', 'copy', self.outfile])
             
