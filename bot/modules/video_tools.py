@@ -1,12 +1,12 @@
 from aiofiles.os import path as aiopath
 from asyncio import sleep
 from pyrogram import Client
-from pyrogram.filters import command, regex
-from pyrogram.handlers import MessageHandler, CallbackQueryHandler
-from pyrogram.types import Message
+from pyrogram.filters import command
+from pyrogram.handlers import MessageHandler
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from secrets import token_urlsafe
 
-from bot import bot, config_dict, LOGGER, user_data
+from bot import bot, config_dict, LOGGER
 from bot.helper.ext_utils.bot_utils import new_task, arg_parser, is_premium_user
 from bot.helper.ext_utils.commons_check import UseCheck
 from bot.helper.ext_utils.links_utils import is_url, get_url_name, get_link
@@ -15,12 +15,11 @@ from bot.helper.telegram_helper.bot_commands import BotCommands
 from bot.helper.telegram_helper.filters import CustomFilters
 from bot.helper.telegram_helper.message_utils import sendMessage, editMessage, deleteMessage, auto_delete_message
 from bot.helper.video_utils.executor import VidEcxecutor, get_metavideo
-from bot.helper.video_utils.selector import SelectMode, cb_vidtools
-from bot.helper.video_utils.extra_selector import ExtraSelect
+from bot.helper.video_utils.selector import SelectMode
 
 
 class VidTools(TaskListener):
-    def __init__(self, client: Client, message: Message, isLeech=False, bulk=None, multiTag=None, options=''):
+    def __init__(self, client: Client, message: Message, _=False, __=False, isLeech=False, ___=None, ____=None, bulk=None, multiTag=None, options=''):
         if bulk is None:
             bulk = []
         self.message = message
@@ -31,7 +30,6 @@ class VidTools(TaskListener):
         self.bulk = bulk
         super().__init__()
         self.isLeech = isLeech
-        user_data[self.user_id] = self
 
     @new_task
     async def newEvent(self):
@@ -99,7 +97,7 @@ class VidTools(TaskListener):
             self.run_multi(input_list, '', VidTools)
             return
 
-        if not (metadata := await get_metavideo(self.link)) or not metadata[0]:
+        if not (metadata := await get_metavideo(self.link)) and not metadata[0]:
             await sendMessage('Failed getting metadata!', self.message)
             self.run_multi(input_list, '', VidTools)
             return
@@ -145,21 +143,6 @@ async def mirror_vidtools(client: Client, message: Message):
 async def leech_vidtools(client: Client, message: Message):
     VidTools(client, message, isLeech=True).newEvent()
 
-# New callback handler for the advanced options menu
-async def extra_opts_callback(client, query):
-    user_id = query.from_user.id
-    data = query.data.split()
-    
-    listener = user_data.get(user_id)
-    if not listener or not hasattr(listener, 'vid_listener') or not listener.vid_listener.extra_listener:
-        await query.answer("This is not for you or the session has expired!", show_alert=True)
-        return
-        
-    await listener.vid_listener.extra_listener.on_extra_selection(query)
-
 
 bot.add_handler(MessageHandler(mirror_vidtools, filters=command(BotCommands.MVidCommand) & CustomFilters.authorized))
 bot.add_handler(MessageHandler(leech_vidtools, filters=command(BotCommands.LVidCommand) & CustomFilters.authorized))
-# Add handlers for the new callbacks
-bot.add_handler(CallbackQueryHandler(cb_vidtools, filters=regex("^vidtool")))
-bot.add_handler(CallbackQueryHandler(extra_opts_callback, filters=regex("^extra")))
