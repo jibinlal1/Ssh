@@ -276,6 +276,34 @@ async def split_file(path, size, dirpath, split_size, listener, obj, start_time=
     return True
 
 
+async def createArchive(listener, scr_path, dest_path, size, pswd, mpart=False):
+    cmd = ['7z', f'-v{listener.splitSize}b', 'a', '-mx=0', f'-p{pswd}', dest_path, scr_path]
+    cmd.extend(f'-xr!*.{ext}' for ext in listener.extensionFilter)
+    if listener.isLeech and int(size) > listener.splitSize or mpart and int(size) > listener.splitSize:
+        if not pswd:
+            del cmd[4]
+        LOGGER.info('Zip: orig_path: %s, zip_path: %s.0*', scr_path, dest_path)
+    else:
+        del cmd[1]
+        if not pswd:
+            del cmd[3]
+        LOGGER.info('Zip: orig_path: %s, zip_path: %s', scr_path, dest_path)
+    async with subprocess_lock:
+        if listener.suproc == 'cancelled':
+            return
+        listener.suproc = await create_subprocess_exec(*cmd, stderr=PIPE)
+    _, stderr = await listener.suproc.communicate()
+    code = listener.suproc.returncode
+    if code == -9:
+        return
+    if code == 0:
+        if not listener.seed:
+            await clean_target(scr_path, True)
+        return True
+    LOGGER.error('%s. Unable to zip this path: %s', stderr.decode().strip(), scr_path)
+    return True
+
+
 class FFProgress:
     def __init__(self):
         self.is_cancel = False
