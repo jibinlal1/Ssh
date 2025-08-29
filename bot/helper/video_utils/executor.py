@@ -311,12 +311,10 @@ class VidEcxecutor(FFProgress):
                 vfilters = []
                 # Set video codec
                 vcodec = self.data.get('vcodec')
-                if vcodec and vcodec != 'copy':
-                    cmd.extend(['-c:v', vcodec])
-                elif vcodec == 'hevc':
+                if vcodec == 'hevc':
                     cmd.extend(['-c:v', 'libx265'])
-                else: # Default behavior if not specified
-                    cmd.extend(['-c:v', 'libx264'])
+                elif vcodec:
+                    cmd.extend(['-c:v', vcodec])
                 
                 # Set CRF, if available
                 if 'crf' in self.data:
@@ -374,7 +372,7 @@ class VidEcxecutor(FFProgress):
             base_dir, (streams, _), self.size = await gather(self._name_base_dir(main_video, 'Remove', multi),
                                                              get_metavideo(main_video), get_path_size(main_video))
         self._start_handler(streams)
-await gather(self._send_status(), self.event.wait())
+        await gather(self._send_status(), self.event.wait())
         await self._queue()
         if self.is_cancel:
             return
