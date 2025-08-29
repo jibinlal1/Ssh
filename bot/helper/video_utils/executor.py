@@ -183,7 +183,10 @@ class VidEcxecutor(FFProgress):
     async def _run_cmd(self, cmd, status='prog'):
         await self._send_status(status)
         self.listener.suproc = await create_subprocess_exec(*cmd, stderr=PIPE)
-        _, code = await gather(self.progress(status), self.listener.suproc.wait())
+        if status != 'no_progress':
+            _, code = await gather(self.progress(status), self.listener.suproc.wait())
+        else:
+            _, code = await self.listener.suproc.wait()
         if code == 0:
             if not self.listener.seed:
                 await gather(*[clean_target(file) for file in self._files])
@@ -604,7 +607,7 @@ class VidEcxecutor(FFProgress):
                 '-c:v', 'libx264', '-c:a', 'aac', '-map', '0', '-y', self.outfile
             ]
             
-            await self._run_cmd(cmd, 'direct')
+            await self._run_cmd(cmd, 'no_progress')
             await clean_target(input_file)
             if self.is_cancel:
                 return
