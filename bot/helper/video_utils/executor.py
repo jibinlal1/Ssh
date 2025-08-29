@@ -309,7 +309,8 @@ class VidEcxecutor(FFProgress):
                 cmd = [FFMPEG_NAME, '-hide_banner', '-ignore_unknown', '-y', '-i', self.path]
                 
                 vfilters = []
-                # Set video codec
+                
+                # Set video codec, default to libx265 if not specified
                 vcodec = self.data.get('vcodec')
                 if vcodec == 'hevc':
                     cmd.extend(['-c:v', 'libx265'])
