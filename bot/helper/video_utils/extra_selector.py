@@ -195,6 +195,8 @@ class ExtraSelect:
         buttons = ButtonMaker()
         hvid = '1080p'
         resolution_options = {
+            '4k': 'Convert to 4k',
+            '2k': 'Convert to 2k',
             '1080p': 'Convert to 1080p',
             '720p': 'Convert to 720p',
             '540p': 'Convert to 540p',
@@ -333,7 +335,7 @@ class ExtraSelect:
                 f'<code>{self.executor.name}</code>\n\n'
                 'Please select a resolution:')
 
-        resolutions = ['1920x1080', '1280x720', '854x480', '640x360', '2560x1440', '3840x2160']
+        resolutions = ['3840x2160', '2560x1440', '1920x1080', '1280x720', '854x480', '640x360']
         for res in resolutions:
             buttons.button_data(res, f'extra convert resolution_set {res}')
             
@@ -527,7 +529,7 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                     await obj._select_resolution(obj.executor.data['streams'])
                 case 'resolution_set':
                     obj.executor.data['resolution'] = data[3]
-                    obj.executor.data['vcodec'] = 'libx264' # Set a default codec for resolution conversion
+                    obj.executor.data['vcodec'] = 'libx264'
                     obj.event.set()
                 case 'bit_depth_toggle':
                     if obj.executor.data.get('bit_depth') == '10bit':
