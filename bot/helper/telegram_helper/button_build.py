@@ -29,14 +29,17 @@ class ButtonMaker:
                 self._footer_button.append(InlineKeyboardButton(text=key, callback_data=data))
             case _:
                 self._button.append(InlineKeyboardButton(text=key, callback_data=data))
-
-    # New function added for compatibility
+                
     def sbutton(self, key, data):
-        self.button_data(key, data)
+        """A simple method to add a button with callback data."""
+        self._button.append(InlineKeyboardButton(text=str(key), callback_data=data.encode("UTF-8")))
 
-    # New function added for compatibility
-    def add_footer(self, key, data):
-        self.button_data(key, data, position='footer')
+    def add_footer(self, key, data, callback=True):
+        """A method to add a button to the footer row."""
+        if callback:
+            self._footer_button.append(InlineKeyboardButton(text=key, callback_data=data.encode("UTF-8")))
+        else:
+            self._footer_button.append(InlineKeyboardButton(text=key, url=data))
 
     def build_menu(self, b_cols=1, h_cols=8, f_cols=8):
         menu = [self._button[i:i + b_cols] for i in range(0, len(self._button), b_cols)]
@@ -54,7 +57,12 @@ class ButtonMaker:
                 menu.append(self._footer_button)
         return InlineKeyboardMarkup(menu) if len(menu) else None
 
-    # New property added for compatibility
     @property
     def markup(self):
-        return self.build_menu(2) # Defaulting to 2 columns for the new feature layout
+        """A property to get the markup with a default layout."""
+        buttons = [self._button[i:i+3] for i in range(0, len(self._button), 3)]
+        if self._header_button:
+            buttons.insert(0, self._header_button)
+        if self._footer_button:
+            buttons.append(self._footer_button)
+        return InlineKeyboardMarkup(buttons)
