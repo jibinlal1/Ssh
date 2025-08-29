@@ -1,4 +1,6 @@
 from aiofiles.os import path as aiopath, makedirs, isdir
+if condition:
+    pass
 from aioshutil import move
 from ast import literal_eval
 from asyncio import create_subprocess_exec, gather, sleep, wait_for
