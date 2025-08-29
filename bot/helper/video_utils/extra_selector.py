@@ -61,10 +61,10 @@ class ExtraSelect:
                 elif codec_type == 'subtitle':
                     self.executor.data['is_sub'] = True
                 self.executor.data['stream'][indexmap] = {'info': f'{codec_type.title()} ~ {lang.upper()}',
-                                                          'name': codec_name,
-                                                          'map': indexmap,
-                                                          'type': codec_type,
-                                                          'lang': lang}
+                                                         'name': codec_name,
+                                                         'map': indexmap,
+                                                         'type': codec_type,
+                                                         'lang': lang}
         mode, ddict = self.executor.mode, self.executor.data
         for key, value in ddict['stream'].items():
             if mode == 'extract':
@@ -210,6 +210,7 @@ class ExtraSelect:
             buttons.button_data(resulution[key], f'extra convert {key}')
 
         buttons.button_data('Custom FFmpeg', 'extra convert custom_options')
+        buttons.button_data('Resolution', 'extra convert resolution_mode')
         buttons.button_data('Cancel', 'extra cancel', 'footer')
         await self.update_message(f'{self._listener.tag}, Select available resulution to convert.\n<code>{self.executor.name}</code>', buttons.build_menu(2))
 
@@ -228,8 +229,7 @@ class ExtraSelect:
                 f"Bitrate: <b>{self.executor.data.get('bitrate', 'Default')}</b>\n"
                 f"Preset: <b>{self.executor.data.get('preset', 'Default')}</b>\n"
                 f"Resolution: <b>{self.executor.data.get('resolution', 'Default')}</b>\n"
-                f"Bit Depth: <b>{self.executor.data.get('bit_depth', '8bit')}</b>\n"
-                f"FPS: <b>{self.executor.data.get('fps', 'Default')}</b>\n\n"
+                f"Bit Depth: <b>{self.executor.data.get('bit_depth', '8bit')}</b>\n\n"
                 "Please choose your custom settings:")
         
         buttons.button_data('CRF', 'extra convert crf_mode')
@@ -241,8 +241,6 @@ class ExtraSelect:
         bit_depth_button_text = f"10bit"
         buttons.button_data(bit_depth_button_text, 'extra convert bit_depth_toggle')
         
-        buttons.button_data('FPS', 'extra convert fps_mode')
-
         buttons.button_data('Back', 'extra convert back', 'footer')
         buttons.button_data('Continue ✓', 'extra convert continue_custom', 'footer')
         
@@ -359,25 +357,6 @@ class ExtraSelect:
         buttons.button_data('Cancel', 'extra cancel', 'footer')
 
         await self.update_message(text, buttons.build_menu(2))
-
-    async def _select_fps(self, streams: dict):
-        if not self.executor.data:
-            self.executor.data = {}
-        self.executor.data.update({'streams': streams})
-        buttons = ButtonMaker()
-        text = (f'<b>FPS CONVERT SETTINGS ~ {self._listener.tag}</b>\n'
-                f'<code>{self.executor.name}</code>\n\n'
-                'Please select a frame rate:')
-
-        fps_options = ['24', '25', '30', '60']
-        for fps in fps_options:
-            buttons.button_data(f'{fps} FPS', f'extra convert fps_set {fps}')
-
-        buttons.button_data('Custom FPS', 'extra convert custom_fps_input')
-        buttons.button_data('Back', 'extra convert custom_options', 'footer')
-        buttons.button_data('Cancel', 'extra cancel', 'footer')
-
-        await self.update_message(text, buttons.build_menu(3))
 
     async def _await_text_input(self, prompt, key_to_set, back_callback):
         self.status = 'awaiting_custom_input'
@@ -552,11 +531,6 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                     else:
                         obj.executor.data['bit_depth'] = '10bit'
                     await obj._select_custom_options(obj.executor.data['streams'])
-                case 'fps_mode':
-                    await obj._select_fps(obj.executor.data['streams'])
-                case 'fps_set':
-                    obj.executor.data['fps'] = int(data[3])
-                    await obj._select_custom_options(obj.executor.data['streams'])
                 case 'custom_options':
                     await obj._select_custom_options(obj.executor.data['streams'])
                 case 'continue_custom':
@@ -581,12 +555,6 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                         prompt="Please send a custom resolution (e.g., `1920x1080` or `1280:-2`).\n<i>Timeout: 60s.</i>",
                         key_to_set='resolution',
                         back_callback='resolution_mode'
-                    )
-                case 'custom_fps_input':
-                    await obj._await_text_input(
-                        prompt="Please send a custom FPS value (e.g., `30`).\n<i>Timeout: 60s.</i>",
-                        key_to_set='fps',
-                        back_callback='fps_mode'
                     )
                 case _:
                     if not obj.executor.data:
@@ -660,5 +628,5 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                 await obj.update_message(*obj._streams_select())
             else:
                 obj.executor.data.update({'key': int(value) if value.isdigit() else data[2:],
-                                          'extension': obj.extension})
+                                         'extension': obj.extension})
                 obj.event.set()
