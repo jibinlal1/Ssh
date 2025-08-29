@@ -1,6 +1,5 @@
-from aiofiles.os import path as aiopath, makedirs, isdir
-if condition:
-    pass
+from aiofiles.os import makedirs
+from aiofiles.ospath import isdir, exists  # Added exists if needed
 from aioshutil import move
 from ast import literal_eval
 from asyncio import create_subprocess_exec, gather, sleep, wait_for
@@ -177,7 +176,7 @@ async def get_audio_thumb(audio_file):
     des_dir = ospath.join(des_dir, f'{time()}.jpg')
     cmd = [FFMPEG_NAME, '-hide_banner', '-loglevel', 'error', '-i', audio_file, '-an', '-vcodec', 'copy', des_dir]
     status = await create_subprocess_exec(*cmd, stderr=PIPE)
-    if await status.wait() != 0 or not await aiopath.exists(des_dir):
+    if await status.wait() != 0 or not await exists(des_dir):
         err = (await status.stderr.read()).decode().strip()
         LOGGER.error('Error while extracting thumbnail from audio. Name: %s stderr: %s', audio_file, err)
         return None
@@ -196,7 +195,7 @@ async def create_thumbnail(video_file, duration):
     cmd = [FFMPEG_NAME, '-hide_banner', '-loglevel', 'error', '-ss', f'{duration}', '-i', video_file, '-vf', 'thumbnail', '-frames:v', '1', des_dir]
     try:
         _, err, code = await wait_for(cmd_exec(cmd), timeout=15)
-        if code != 0 or not await aiopath.exists(des_dir):
+        if code != 0 or not await exists(des_dir):
             LOGGER.error('Error while extracting thumbnail from video. Name: %s stderr: %s', video_file, err)
             return None
     except:
@@ -368,157 +367,3 @@ class FFProgress:
                     self._processed_bytes = await get_path_size(self.outfile)
                     await sleep(0.5)
                     continue
-
-
-class SampleVideo(FFProgress):
-    def __init__(self, listener, duration, partDuration, gid):
-        self.listener = listener
-        self.path = ''
-        self.name = ''
-        self.outfile = ''
-        self.size = 0
-        self._duration = duration
-        self._partduration = partDuration
-        self._gid = gid
-        self._start_time = time()
-        super().__init__()
-
-    async def create(self, video_file: str, oneFile: bool=False):
-        filter_complex = ''
-        self.path = video_file
-        dir, name = video_file.rsplit('/', 1)
-        self.outfile = ospath.join(dir, f'SAMPLE.{name}')
-        segments = [(0, self._partduration)]
-        duration = (await get_media_info(video_file))[0]
-        remaining_duration = duration - (self._partduration * 2)
-        parts = (self._duration - (self._partduration * 2)) // self._partduration
-        time_interval = remaining_duration // parts
-        next_segment = time_interval
-        for _ in range(parts):
-            segments.append((next_segment, next_segment + self._partduration))
-            next_segment += time_interval
-        segments.append((duration - self._partduration, duration))
-
-        for i, (start, end) in enumerate(segments):
-            filter_complex += f"[0:v]trim=start={start}:end={end},setpts=PTS-STARTPTS[v{i}]; "
-            filter_complex += f"[0:a]atrim=start={start}:end={end},asetpts=PTS-STARTPTS[a{i}]; "
-
-        for i in range(len(segments)):
-            filter_complex += f"[v{i}][a{i}]"
-
-        filter_complex += f"concat=n={len(segments)}:v=1:a=1[vout][aout]"
-
-        cmd = [FFMPEG_NAME, '-hide_banner', '-i', video_file, '-filter_complex', filter_complex, '-map', '[vout]',
-                '-map', '[aout]', '-c:v', 'libx264', '-c:a', 'aac', '-threads', f'{cpu_count()//2}', self.outfile]
-
-        if self.listener.suproc == 'cancelled':
-            return False
-
-        self.name, self.size = ospath.basename(video_file), await get_path_size(video_file)
-        self.listener.suproc = await create_subprocess_exec(*cmd, stderr=PIPE)
-        _, code = await gather(self.progress(), self.listener.suproc.wait())
-
-        if code == -9:
-            return False
-        if code == 0:
-            if oneFile:
-                newDir, _ = ospath.splitext(video_file)
-                await makedirs(newDir, exist_ok=True)
-                await gather(move(video_file, ospath.join(newDir, name)), move(self.outfile, ospath.join(newDir, f'SAMPLE.{name}')))
-                return newDir
-            return True
-
-        LOGGER.error('%s. Something went wrong while creating sample video, mostly file is corrupted. Path: %s', (await self.listener.suproc.stderr.read()).decode().strip(), video_file)
-        return video_file
-
-
-async def createArchive(listener, scr_path, dest_path, size, pswd, mpart=False):
-    cmd = ['7z', f'-v{listener.splitSize}b', 'a', '-mx=0', f'-p{pswd}', dest_path, scr_path]
-    cmd.extend(f'-xr!*.{ext}' for ext in listener.extensionFilter)
-    if listener.isLeech and int(size) > listener.splitSize or mpart and int(size) > listener.splitSize:
-        if not pswd:
-            del cmd[4]
-        LOGGER.info('Zip: orig_path: %s, zip_path: %s.0*', scr_path, dest_path)
-    else:
-        del cmd[1]
-        if not pswd:
-            del cmd[3]
-        LOGGER.info('Zip: orig_path: %s, zip_path: %s', scr_path, dest_path)
-    async with subprocess_lock:
-        if listener.suproc == 'cancelled':
-            return
-        listener.suproc = await create_subprocess_exec(*cmd, stderr=PIPE)
-    _, stderr = await listener.suproc.communicate()
-    code = listener.suproc.returncode
-    if code == -9:
-        return
-    if code == 0:
-        if not listener.seed:
-            await clean_target(scr_path, True)
-        return True
-    LOGGER.error('%s. Unable to zip this path: %s', stderr.decode().strip(), scr_path)
-    return True
-
-
-class GenSS:
-    def __init__(self, message, path):
-        self._message = message
-        self._path = path
-        self._images = f'genss_{self._message.id}.jpg'
-        self._ss_path = ospath.join('genss', str(self._message.id))
-        self._name = ''
-        self._error = False
-
-    @property
-    def error(self):
-        return self._error
-
-    @property
-    def name(self):
-        return self._name
-
-    @property
-    def rimage(self):
-        return self._images
-
-    async def _combine_image(self):
-        await cmd_exec([FFMPEG_NAME, '-hide_banner', '-loglevel', 'quiet', '-i', str(ospath.join(self._ss_path, '%1d.jpg')),
-                        '-filter_complex', 'scale=1920:-1,tile=3x3', self._images, '-y'])
-        if not await aiopath.exists(self._images):
-            self._images = ''
-
-    async def _run_genss(self, duration, index):
-        await makedirs(self._ss_path, exist_ok=True)
-        des_dir = ospath.join(self._ss_path, f'{index}.jpg')
-        cmds = [FFMPEG_NAME, '-hide_banner', '-loglevel', 'error', '-start_at_zero', '-copyts', '-ss', f'{duration}', '-i', self._path, '-vf',
-                "drawtext=fontfile=font.ttf:fontsize=70:fontcolor=white:box=1:boxcolor=black@0.7:x=(W-tw)/1.05:y=h-(2*lh):text='%{pts\:hms}'",
-                '-vframes', '1', des_dir, '-y']
-        await cmd_exec(cmds)
-        if await aiopath.exists(des_dir):
-            with Image.open(des_dir) as img:
-                img.convert('RGB').save(des_dir, 'JPEG')
-            return des_dir
-
-    async def file_ss(self):
-        min_dur, max_photo = 5, 10
-        duration = (await get_media_info(self._path))[0]
-        if not duration:
-            self._error = 'Failed fetch info from url, something wrong with url or not video in url!'
-            return
-        if duration > min_dur:
-            cur_step = duration // max_photo
-            current = cur_step
-            images = []
-            for x in range(max_photo):
-                images.append(await self._run_genss(current, str(x)))
-                current += cur_step
-            if any(images):
-                await self._combine_image()
-        if not self._images:
-            self._error = 'Failed generated screenshot, something wrong with url or not video in url!'
-            LOGGER.info('Failed Generating Screenshot: %s', ospath.basename(self._path))
-        await clean_target(self._ss_path)
-
-    async def ddl_ss(self):
-        self._name = get_url_name(self._path)
-        await self.file_ss()
