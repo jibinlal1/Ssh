@@ -597,7 +597,13 @@ class VidEcxecutor(FFProgress):
                 await f.write('\n'.join(list_files))
 
             self.outfile = ospath.join(self.path, self.name)
-            cmd = [FFMPEG_NAME, '-ignore_unknown', '-f', 'concat', '-safe', '0', '-i', input_file, '-map', '0', '-c', 'copy', self.outfile, '-y']
+            
+            # Updated command to re-encode for compatibility
+            cmd = [
+                FFMPEG_NAME, '-ignore_unknown', '-f', 'concat', '-safe', '0', '-i', input_file,
+                '-c:v', 'libx264', '-c:a', 'aac', '-map', '0', '-y', self.outfile
+            ]
+            
             await self._run_cmd(cmd, 'direct')
             await clean_target(input_file)
             if self.is_cancel:
