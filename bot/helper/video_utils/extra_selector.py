@@ -258,7 +258,7 @@ class ExtraSelect:
                 'Please select a CRF value:\n'
                 '<i>Lower value means higher quality but larger size.</i>')
         
-        for crf_value in ['18', '21', '23', '25', '28']:
+        for crf_value in ['5', '10', '12', '14', '16', '18', '20', '21', '23', '25', '28', '30']:
             buttons.button_data(f'CRF {crf_value}', f'extra convert crf_set {crf_value}')
         
         buttons.button_data('Custom CRF', 'extra convert custom_crf_input')
