@@ -117,8 +117,10 @@ class VidEcxecutor(FFProgress):
                     return await self._swap_streams()
                 case 'extract':
                     return await self._vid_extract()
-                case _:
+                case 'convert':
                     return await self._vid_convert()
+                case _:
+                    return await self._vid_convert() # Default case
         except Exception as e:
             LOGGER.error(e, exc_info=True)
         return self._up_path
@@ -220,7 +222,7 @@ class VidEcxecutor(FFProgress):
             base_dir, (streams, _), self.size = await gather(self._name_base_dir(main_video, 'Extract', multi),
                                                              get_metavideo(main_video), get_path_size(main_video))
 
-        self._start_handler(streams, True)
+        self._start_handler(streams)
         await gather(self._send_status(), self.event.wait())
         await self._queue()
 
@@ -259,36 +261,41 @@ class VidEcxecutor(FFProgress):
                     return self._up_path
         return self._up_path
 
-
     async def _vid_convert(self):
         file_list = await self._get_files()
         if not file_list:
             return self._up_path
 
-        if not self._metadata:
-            self.size = await get_path_size(self.path)
+        if self._metadata:
+            streams = self._metadata[0]
+        else:
+            main_video = file_list[0]
+            self.size = await get_path_size(main_video)
+            streams, _ = await get_metavideo(main_video)
 
         # Show resolution selection buttons
-        self._start_handler()
+        self._start_handler(streams)
         await gather(self._send_status(), self.event.wait())
         await self._queue()
 
         if self.is_cancel:
             return
-        if self.data is None: # If no selection is made, you might want to default or cancel
-            await self.listener.onUploadError('No resolution selected!')
+        if not self.data: # If no selection is made
+            await self.listener.onUploadError('No options selected!')
             return
 
-        # Get encoding options with defaults
+        # Get encoding options from user selection
         video_codec = self.data.get('video_codec', 'libx264')
         audio_codec = self.data.get('audio_codec', 'aac')
-        audio_bitrate = self.data.get('audio_bitrate', '160k')
+        audio_bitrate = self.data.get('bitrate', '160k')
         audio_channels = self.data.get('audio_channels', 2)
         preset = self.data.get('preset', 'medium')
-        crf = self.data.get('crf', '23')
+        crf = self.data.get('crf', 23)
+        resolution = self.data.get('resolution')
 
-        # Get resolution key from user selection
-        resolution = self.data if isinstance(self.data, str) else self.data.get('resolution', '720p')
+        if not resolution:
+             await self.listener.onUploadError('No resolution selected!')
+             return
         scale_width = self._qual.get(resolution, '1280')
 
         for file in file_list:
@@ -331,7 +338,7 @@ class VidEcxecutor(FFProgress):
             base_dir, (streams, _), self.size = await gather(self._name_base_dir(main_video, 'Remove', multi),
                                                              get_metavideo(main_video), get_path_size(main_video))
 
-        self._start_handler(streams, True)
+        self._start_handler(streams)
         await gather(self._send_status(), self.event.wait())
         await self._queue()
 
