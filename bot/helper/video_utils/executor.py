@@ -306,21 +306,23 @@ class VidEcxecutor(FFProgress):
             self._files.append(self.path)
             
             resolution_val = self._qual[self.data['resolution']]
-            
             cmd = [FFMPEG_NAME, '-hide_banner', '-ignore_unknown', '-y', '-i', self.path]
             
             cmd.extend(['-vf', f'scale={resolution_val}:-2'])
-            cmd.extend(['-c:v', self.data['codec']])
             
-            # Add common encoding options for libx264 and libx265
-            if self.data['codec'] in ['libx264', 'libx265']:
+            codec = self.data['codec']
+            cmd.extend(['-c:v', codec])
+
+            if codec in ['libx264', 'libx265']:
                 cmd.extend(['-preset', self.data['preset']])
                 cmd.extend(['-crf', self.data['crf']])
+                if codec == 'libx265':
+                    cmd.extend(['-pix_fmt', 'yuv420p', '-profile:v', 'main'])
+            elif codec in ['libvpx-vp9', 'libaom-av1']:
+                cmd.extend(['-crf', self.data['crf']])
+                if codec == 'libaom-av1':
+                    cmd.extend(['-cpu-used', '4'])
 
-            # Add specific options for libx265
-            if self.data['codec'] == 'libx265':
-                cmd.extend(['-pix_fmt', 'yuv420p', '-profile:v', 'main'])
-                
             if self.data['audio_codec'] == 'copy':
                 cmd.extend(['-c:a', 'copy'])
             else:
@@ -749,7 +751,6 @@ class VidEcxecutor(FFProgress):
             
             cmd.extend(map_args)
 
-            # --- NEW CODE ADDED HERE ---
             # Clear all default audio dispositions
             for s in audio_streams:
                 cmd.extend(['-disposition:a:{}'.format(s['index']), '0'])
@@ -758,7 +759,6 @@ class VidEcxecutor(FFProgress):
             if new_audio_order:
                 first_audio_index = new_audio_order[sorted(new_audio_order.keys())[0]]
                 cmd.extend(['-disposition:a:{}'.format(first_audio_index), 'default'])
-            # --- END OF NEW CODE ---
             
             cmd.extend(['-c', 'copy', self.outfile])
             
