@@ -32,7 +32,8 @@ class ExtraSelect:
         self.executor.data.setdefault('preset', 'medium')
         self.executor.data.setdefault('crf', 23)
         self.executor.data.setdefault('audio_channels', 2)
-        self.executor.data.setdefault('bitrate', '160k') # Corrected from bitrate to audio_bitrate for consistency
+        self.executor.data.setdefault('audio_codec', 'aac')
+        self.executor.data.setdefault('bitrate', '160k')
         self.executor.data.setdefault('video_codec', 'libx264')
         self.executor.data.setdefault('resolution', None)
         self.executor.data.setdefault('audio', None) # For default audio stream
@@ -242,11 +243,12 @@ class ExtraSelect:
     async def show_conversion_options(self, resolution: str):
         self.executor.data['resolution'] = resolution
         buttons = ButtonMaker()
+        buttons.button_data(f"Video Codec: {self.executor.data['video_codec']}", 'extra set_video_codec')
         buttons.button_data(f"Preset: {self.executor.data['preset']}", 'extra set_preset')
         buttons.button_data(f"CRF: {self.executor.data['crf']}", 'extra set_crf')
+        buttons.button_data(f"Audio Codec: {self.executor.data['audio_codec']}", 'extra set_audio_codec')
         buttons.button_data(f"Audio Channels: {self.executor.data['audio_channels']}", 'extra set_audio_channels')
         buttons.button_data(f"Bitrate: {self.executor.data['bitrate']}", 'extra set_bitrate')
-        buttons.button_data(f"Video Codec: {self.executor.data['video_codec']}", 'extra set_video_codec')
         buttons.button_data('Reset', 'extra reset_conversion', 'header')
         buttons.button_data('Continue', 'extra start_conversion', 'footer')
         buttons.button_data('Back', 'extra back_to_res_select', 'footer')
@@ -294,6 +296,12 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
         await obj.show_conversion_options(resolution)
     elif cmd == 'back_to_res_select':
         await obj.convert_select(obj.executor._metadata[0] if obj.executor._metadata else [])
+    elif cmd == 'set_video_codec':
+        options = ['libx264', 'libx265']
+        await obj._select_option("Video Codec", obj.executor.data.get('video_codec'), options, "video_codec_value")
+    elif cmd == 'video_codec_value':
+        obj.executor.data['video_codec'] = data[2]
+        await obj.show_conversion_options(obj.executor.data['resolution'])
     elif cmd == 'set_preset':
         options = ['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium', 'slow', 'slower', 'veryslow']
         await obj._select_option("Preset", obj.executor.data.get('preset'), options, "preset_value")
@@ -305,6 +313,12 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
         await obj._select_option("CRF", obj.executor.data.get('crf'), options, "crf_value")
     elif cmd == 'crf_value':
         obj.executor.data['crf'] = int(data[2])
+        await obj.show_conversion_options(obj.executor.data['resolution'])
+    elif cmd == 'set_audio_codec':
+        options = ['aac', 'ac3', 'copy']
+        await obj._select_option("Audio Codec", obj.executor.data.get('audio_codec'), options, "audio_codec_value")
+    elif cmd == 'audio_codec_value':
+        obj.executor.data['audio_codec'] = data[2]
         await obj.show_conversion_options(obj.executor.data['resolution'])
     elif cmd == 'set_audio_channels':
         options = [1, 2, 6]
@@ -318,16 +332,10 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
     elif cmd == 'bitrate_value':
         obj.executor.data['bitrate'] = data[2]
         await obj.show_conversion_options(obj.executor.data['resolution'])
-    elif cmd == 'set_video_codec':
-        options = ['libx264', 'libx265']
-        await obj._select_option("Video Codec", obj.executor.data.get('video_codec'), options, "video_codec_value")
-    elif cmd == 'video_codec_value':
-        obj.executor.data['video_codec'] = data[2]
-        await obj.show_conversion_options(obj.executor.data['resolution'])
     elif cmd == 'back_to_conversion_options':
         await obj.show_conversion_options(obj.executor.data['resolution'])
     elif cmd == 'reset_conversion':
-        obj.executor.data.update({'preset': 'medium', 'crf': 23, 'audio_channels': 2, 'bitrate': '160k', 'video_codec': 'libx264'})
+        obj.executor.data.update({'preset': 'medium', 'crf': 23, 'audio_channels': 2, 'audio_codec': 'aac', 'bitrate': '160k', 'video_codec': 'libx264'})
         await obj.show_conversion_options(obj.executor.data['resolution'])
     elif cmd == 'start_conversion':
         obj.event.set()
@@ -380,7 +388,6 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             mapindex = int(sub_cmd)
             if mapindex in ddict['sdata']: ddict['sdata'].remove(mapindex)
             else: ddict['sdata'].append(mapindex)
-        # Update message after modification
         await obj.update_message(*obj._streams_select(ddict['stream']))
     elif cmd == 'extract':
         if len(data) > 2:
