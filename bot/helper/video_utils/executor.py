@@ -300,6 +300,8 @@ class VidEcxecutor(FFProgress):
         if not self.data:
             return self._up_path
 
+        #here
+
         async def _vid_convert(self):
     file_list = await self._get_files()
     multi = len(file_list) > 1
@@ -325,7 +327,6 @@ class VidEcxecutor(FFProgress):
     if not self.data:
         return self._up_path
 
-    # Fix: Get resolution properly to avoid key error
     resolution = self.data.get('resolution', '720p')
     scale_width = self._qual.get(resolution, '1280')
 
@@ -333,18 +334,15 @@ class VidEcxecutor(FFProgress):
 
     for file in file_list:
         self.path = file
-        # Consistent indentation starts here
         if not self._metadata:
             _, self.size = await gather(
-                self._name_base_dir(self.path, f'convert-{self.data}', multi),
+                self._name_base_dir(self.path, f'Convert-{self.data}', multi),
                 get_path_size(self.path)
             )
-
         self.outfile = ospath.join(base_dir, self.name)
         self._files.append(self.path)
-
         cmd = [
-            FFMPEG,
+            FFMPEG_NAME,
             '-hide_banner',
             '-ignore_unknown',
             '-y',
@@ -371,8 +369,9 @@ class VidEcxecutor(FFProgress):
 
     return await self._final_path()
 
+        
 
-
+  #here
 
         self.outfile = self._up_path
         for file in file_list:
