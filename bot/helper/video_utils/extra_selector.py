@@ -247,17 +247,17 @@ class ExtraSelect:
 
         buttons.button_data('Reset', 'extra convert_reset', 'header')
         
-        # Video Codec
-        buttons.button_data('Video Codec', 'extra convert_opt video_codec', 'header')
-        buttons.button_data('Preset', 'extra convert_opt preset', 'header')
-        buttons.button_data('CRF', 'extra convert_opt crf', 'header')
-        buttons.button_data('Audio Codec', 'extra convert_opt audio_codec', 'header')
-        buttons.button_data('Audio Channels', 'extra convert_opt audio_channels', 'header')
-        buttons.button_data('Bitrate', 'extra convert_opt bitrate', 'header')
+        # Arranging buttons in a grid for better UI
+        buttons.button_data('Video Codec', 'extra convert_opt video_codec')
+        buttons.button_data('Preset', 'extra convert_opt preset')
+        buttons.button_data('CRF', 'extra convert_opt crf')
+        buttons.button_data('Audio Codec', 'extra convert_opt audio_codec')
+        buttons.button_data('Audio Channels', 'extra convert_opt audio_channels')
+        buttons.button_data('Bitrate', 'extra convert_opt bitrate')
         
-        buttons.button_data('Cancel', 'extra cancel', 'footer')
-        buttons.button_data('Back', 'extra convert_back', 'header')
         buttons.button_data('Continue', 'extra convert_continue', 'footer')
+        buttons.button_data('Back', 'extra convert_back', 'footer')
+        buttons.button_data('Cancel', 'extra cancel', 'footer')
         
         await self.update_message(text, buttons.build_menu(2))
 
