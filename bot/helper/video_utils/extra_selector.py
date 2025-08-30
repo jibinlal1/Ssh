@@ -14,7 +14,6 @@ from bot.helper.telegram_helper.button_build import ButtonMaker
 from bot.helper.telegram_helper.message_utils import sendMessage, editMessage, deleteMessage
 from bot.helper.video_utils import executor as exc
 
-
 class ExtraSelect:
     def __init__(self, executor: exc.VidEcxecutor):
         self._listener = executor.listener
@@ -36,6 +35,7 @@ class ExtraSelect:
         self.executor.data.setdefault('bitrate', '1000k')
         self.executor.data.setdefault('video_codec', 'libx264')
         self.executor.data.setdefault('resolution', None)
+        self.executor.data.setdefault('audio', None) # For default audio stream
 
     @new_thread
     async def _event_handler(self):
