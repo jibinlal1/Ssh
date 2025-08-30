@@ -24,7 +24,7 @@ from bot.helper.video_utils.extra_selector import ExtraSelect
 
 async def get_metavideo(video_file):
     stdout, stderr, rcode = await cmd_exec([
-        'ffprobe', '-hide_banner', '-print_format', 'json', 
+        'ffprobe', '-hide_banner', '-print_format', 'json',
         '-show_format', '-show_streams', video_file
     ])
     if rcode != 0:
@@ -210,10 +210,9 @@ class VidEcxecutor(FFProgress):
 
         if not file_list:
             return self._up_path
-        
-        if self.data is None:
-        self.data = {}
 
+        if self.data is None:
+            self.data = {}
 
         # Get encoding options with defaults
         video_codec = self.data.get('video_codec', 'libx264')
@@ -222,7 +221,7 @@ class VidEcxecutor(FFProgress):
         audio_channels = self.data.get('audio_channels', 2)
         preset = self.data.get('preset', 'medium')
         crf = self.data.get('crf', '23')
-    
+
         # Get resolution key
         resolution = self.data if isinstance(self.data, str) else self.data.get('resolution', '720p')
         scale_width = self._qual.get(resolution, '1280')
@@ -266,16 +265,16 @@ class VidEcxecutor(FFProgress):
             main_video = file_list[0]
             base_dir, (streams, _), self.size = await gather(self._name_base_dir(main_video, 'Remove', multi),
                                                              get_metavideo(main_video), get_path_size(main_video))
-        
+
         self._start_handler(streams, True)
         await gather(self._send_status(), self.event.wait())
         await self._queue()
-        
+
         if self.is_cancel:
             return
         if not self.data:
             return self._up_path
-            
+
         self.outfile = self._up_path
         for file in file_list:
             self.path = file
@@ -571,7 +570,7 @@ class VidEcxecutor(FFProgress):
                 hardusb = f",subtitles='{self._files[1]}':force_style='FontName={fontname},Shadow=1.5{fontsize}{fontcolour}{boldstyle}',unsharp,eq=contrast=1.07"
 
                 quality = f',scale={self._qual[kwargs["quality"]]}:-2' if kwargs.get('quality') else ''
-                
+
                 cmd.append(f"subtitles='{self._files[1]}':force_style='FontName={fontname},Shadow=1.5{fontsize}{fontcolour}{boldstyle}'{quality},unsharp,eq=contrast=1.07")
 
                 if config_dict['VIDTOOLS_FAST_MODE']:
@@ -609,28 +608,28 @@ class VidEcxecutor(FFProgress):
             main_video = file_list[0]
             base_dir, (streams, _), self.size = await gather(self._name_base_dir(main_video, 'Swap', multi),
                                                              get_metavideo(main_video), get_path_size(main_video))
-        
+
         self._start_handler(streams)
         await gather(self._send_status(), self.event.wait())
         await self._queue()
-        
+
         if self.is_cancel:
             return
 
         reorders = self.data.get('remaps', {})
-        
+
         self.outfile = self._up_path
         for file in file_list:
             self.path = file
             if not self._metadata:
                 _, self.size = await gather(self._name_base_dir(self.path, 'Swap', multi), get_path_size(self.path))
-            
+
             self.outfile = ospath.join(base_dir, self.name)
             self._files.append(self.path)
-            
+
             cmd = [FFMPEG_NAME, '-y', '-i', self.path]
             map_args = []
-            
+
             # Get video, audio, and subtitle streams
             video_stream = next((s for s in streams if s['codec_type'] == 'video'), None)
             audio_streams = sorted([s for s in streams if s['codec_type'] == 'audio'], key=lambda s: s['index'])
@@ -651,18 +650,18 @@ class VidEcxecutor(FFProgress):
                     while new_pos in new_audio_order:
                         new_pos += 1
                     new_audio_order[new_pos] = s['index']
-            
+
             # Add audio streams to map_args in the new order
             for pos in sorted(new_audio_order.keys()):
                 map_args.extend(['-map', f'0:{new_audio_order[pos]}'])
-            
+
             # Add subtitle streams to map_args
             for s in sub_streams:
                 map_args.extend(['-map', f'0:{s["index"]}'])
-            
+
             cmd.extend(map_args)
             cmd.extend(['-c', 'copy', self.outfile])
-            
+
             await self._run_cmd(cmd)
             if self.is_cancel:
                 return
