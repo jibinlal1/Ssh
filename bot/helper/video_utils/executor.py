@@ -210,22 +210,22 @@ class VidEcxecutor(FFProgress):
     async def _vid_convert(self):
         file_list = await self._get_files()
 
-    if not file_list:
-        return self._up_path
+        if not file_list:
+            return self._up_path
 
     # Get encoding options with defaults
-    video_codec = self.data.get('video_codec', 'libx264')
-    audio_codec = self.data.get('audio_codec', 'aac')
-    audio_bitrate = self.data.get('audio_bitrate', '160k')
-    audio_channels = self.data.get('audio_channels', 2)
-    preset = self.data.get('preset', 'medium')
-    crf = self.data.get('crf', '23')
+        video_codec = self.data.get('video_codec', 'libx264')
+        audio_codec = self.data.get('audio_codec', 'aac')
+        audio_bitrate = self.data.get('audio_bitrate', '160k')
+        audio_channels = self.data.get('audio_channels', 2)
+        preset = self.data.get('preset', 'medium')
+        crf = self.data.get('crf', '23')
     
     # Get resolution key
-    resolution = self.data if isinstance(self.data, str) else self.data.get('resolution', '720p')
-    scale_width = self._qual.get(resolution, '1280')
+        resolution = self.data if isinstance(self.data, str) else self.data.get('resolution', '720p')
+        scale_width = self._qual.get(resolution, '1280')
 
-    for file in file_list:
+   for file in file_list:
         self.path = file
         base_name, ext = ospath.splitext(self.name)
         self.outfile = ospath.join(ospath.dirname(self.path), f'{base_name}_{resolution}{ext}')
