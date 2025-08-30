@@ -305,25 +305,22 @@ class VidEcxecutor(FFProgress):
             self.outfile = ospath.join(base_dir, self.name)
             self._files.append(self.path)
             
-            # Dynamically build the FFmpeg command
             resolution_val = self._qual[self.data['resolution']]
             
             cmd = [FFMPEG_NAME, '-hide_banner', '-ignore_unknown', '-y', '-i', self.path]
             
-            # Add video filters and encoding options
             cmd.extend(['-vf', f'scale={resolution_val}:-2'])
             cmd.extend(['-c:v', self.data['codec']])
             
-            if self.data['codec'] == 'libx264':
+            # Add common encoding options for libx264 and libx265
+            if self.data['codec'] in ['libx264', 'libx265']:
                 cmd.extend(['-preset', self.data['preset']])
                 cmd.extend(['-crf', self.data['crf']])
 
-            elif self.data['codec'] == 'libx265':
-                cmd.extend(['-preset', self.data['preset']])
-                cmd.extend(['-crf', self.data['crf']])
+            # Add specific options for libx265
+            if self.data['codec'] == 'libx265':
                 cmd.extend(['-pix_fmt', 'yuv420p', '-profile:v', 'main'])
                 
-            # Add audio and stream mapping options
             if self.data['audio_codec'] == 'copy':
                 cmd.extend(['-c:a', 'copy'])
             else:
@@ -715,32 +712,37 @@ class VidEcxecutor(FFProgress):
             cmd = [FFMPEG_NAME, '-y', '-i', self.path]
             map_args = []
             
-            # Get video, audio, and subtitle streams
             video_stream = next((s for s in streams if s['codec_type'] == 'video'), None)
             audio_streams = sorted([s for s in streams if s['codec_type'] == 'audio'], key=lambda s: s['index'])
             sub_streams = sorted([s for s in streams if s['codec_type'] == 'subtitle'], key=lambda s: s['index'])
 
-            # Add video stream first to map_args
             if video_stream:
                 map_args.extend(['-map', f'0:{video_stream["index"]}'])
 
-            # Create a dictionary to hold audio streams by their desired output index
+            # --- Start of Corrected Logic ---
             new_audio_order = {}
+            unmapped_stream_indices = []
+            
+            used_output_positions = set(reorders.values())
+
             for s in audio_streams:
                 if s['index'] in reorders:
-                    new_audio_order[reorders[s['index']]] = s['index']
+                    output_pos = reorders[s['index']]
+                    new_audio_order[output_pos] = s['index']
                 else:
-                    # Find the next available position for unreordered streams
-                    new_pos = len(new_audio_order) + 1
-                    while new_pos in new_audio_order:
-                        new_pos += 1
-                    new_audio_order[new_pos] = s['index']
+                    unmapped_stream_indices.append(s['index'])
             
-            # Add audio streams to map_args in the new order
+            next_available_pos = 1
+            for stream_index in unmapped_stream_indices:
+                while next_available_pos in used_output_positions:
+                    next_available_pos += 1
+                new_audio_order[next_available_pos] = stream_index
+                next_available_pos += 1
+            # --- End of Corrected Logic ---
+            
             for pos in sorted(new_audio_order.keys()):
                 map_args.extend(['-map', f'0:{new_audio_order[pos]}'])
             
-            # Add subtitle streams to map_args
             for s in sub_streams:
                 map_args.extend(['-map', f'0:{s["index"]}'])
             
