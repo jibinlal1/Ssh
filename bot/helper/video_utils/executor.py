@@ -302,8 +302,9 @@ class VidEcxecutor(FFProgress):
 
         #here
 
-        async def _vid_convert(self):
-    file_list = await self._get_files()
+    async def _vid_convert(self):
+        file_list = await
+        self._get_files()
     multi = len(file_list) > 1
     if not file_list:
         return self._up_path
