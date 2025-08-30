@@ -332,11 +332,11 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             text = f'<b>Select {option_type.replace("_", " ").title()}:</b>'
             
             options = {
-                'video_codec': ['libx264', 'libx265'],
+                'video_codec': ['libx264', 'libx265', 'libvpx-vp9', 'libaom-av1'],
                 'preset': ['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium', 'slow', 'slower', 'veryslow'],
-                'crf': [str(i) for i in range(18, 32)],  # Updated range for CRF
-                'audio_codec': ['copy', 'aac', 'ac3'],
-                'audio_channels': ['2', '1', '6'],       # Added 6 audio channels
+                'crf': [str(i) for i in range(18, 32)],
+                'audio_codec': ['copy', 'aac', 'ac3', 'libopus'],
+                'audio_channels': ['2', '1', '6'],
                 'bitrate': ['96k', '128k', '160k', '192k', '256k', '320k']
             }
             
