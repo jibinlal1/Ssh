@@ -310,7 +310,7 @@ class VidEcxecutor(FFProgress):
                 '-vf', f'scale={scale_width}:-2',
                 '-c:v', video_codec,
                 '-preset', preset,
-                '-crf', crf,
+                '-crf', str(crf),
                 '-c:a', audio_codec,
                 '-b:a', audio_bitrate,
                 '-ac', str(audio_channels),
