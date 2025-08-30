@@ -262,12 +262,22 @@ class VidEcxecutor(FFProgress):
 
     async def _vid_convert(self):
         file_list = await self._get_files()
-
         if not file_list:
             return self._up_path
 
-        if self.data is None:
-            self.data = {}
+        if not self._metadata:
+            self.size = await get_path_size(self.path)
+
+        # Show resolution selection buttons
+        self._start_handler()
+        await gather(self._send_status(), self.event.wait())
+        await self._queue()
+
+        if self.is_cancel:
+            return
+        if self.data is None: # If no selection is made, you might want to default or cancel
+            await self.listener.onUploadError('No resolution selected!')
+            return
 
         # Get encoding options with defaults
         video_codec = self.data.get('video_codec', 'libx264')
@@ -277,7 +287,7 @@ class VidEcxecutor(FFProgress):
         preset = self.data.get('preset', 'medium')
         crf = self.data.get('crf', '23')
 
-        # Get resolution key
+        # Get resolution key from user selection
         resolution = self.data if isinstance(self.data, str) else self.data.get('resolution', '720p')
         scale_width = self._qual.get(resolution, '1280')
 
