@@ -1,4 +1,5 @@
 from __future__ import annotations
+from ast import literal_eval
 from asyncio import Event, wait_for, wrap_future
 from functools import partial
 from pyrogram.filters import regex, user
@@ -21,6 +22,9 @@ class ExtraSelect:
         self.executor = executor
         self.event = Event()
         self.is_cancel = False
+        self.extension: list[str] = [None, None, 'mkv']
+        self.status = ''
+        self.swap_selection = {'selected_stream': None, 'remaps': {}}
         
         if not self.executor.data:
             self.executor.data = {}
@@ -51,11 +55,102 @@ class ExtraSelect:
         else:
             await editMessage(text, self._reply, buttons)
 
+    def _streams_select(self, streams: dict):
+        buttons = ButtonMaker()
+        ddict = self.executor.data
+        mode = self.executor.mode
+
+        if 'stream' not in ddict:
+            ddict['stream'] = {}
+            ddict['sdata'] = []
+            for stream in streams:
+                indexmap = stream.get('index')
+                codec_type = stream.get('codec_type')
+                lang = stream.get('tags', {}).get('language', f'#{indexmap}')
+                if codec_type not in ['video', 'audio', 'subtitle']:
+                    continue
+                ddict['stream'][indexmap] = {
+                    'info': f"{'✓ ' if indexmap in ddict['sdata'] else ''}{codec_type.title()} ~ {lang.upper()}",
+                    'map': indexmap,
+                    'type': codec_type
+                }
+        
+        text = (f'<b>STREAM SETTINGS ~ {self._listener.tag}</b>\n'
+                f'<code>{self.executor.name}</code>\n'
+                f'File Size: <b>{get_readable_file_size(self.executor.size)}</b>\n')
+
+        if mode == 'rmstream':
+            text = f'<b>SELECT STREAMS TO REMOVE</b>\n'
+            if sdata := ddict.get('sdata'):
+                text += '\nWill be removed:\n'
+                for i, sindex in enumerate(sdata, start=1):
+                    text += f"{i}. {ddict['stream'][sindex]['info'].replace('✓ ', '')}\n"
+            
+            for key, value in ddict['stream'].items():
+                if value['type'] != 'video':
+                    buttons.button_data(value['info'], f'extra rmstream {key}')
+            buttons.button_data('Reset', 'extra rmstream reset', 'header')
+            buttons.button_data('Reverse', 'extra rmstream reverse', 'header')
+            buttons.button_data('Continue', 'extra rmstream continue', 'footer')
+
+        buttons.button_data('Cancel', 'extra cancel', 'footer')
+        text += f'\n<i>Timeout: {get_readable_time(180 - (time() - self._time))}</i>'
+        return text, buttons.build_menu(2)
+
+    async def rmstream_select(self, streams: dict):
+        await self.update_message(*self._streams_select(streams))
+
+    async def swap_stream_select(self, streams: dict):
+        if 'streams' not in self.executor.data:
+            self.executor.data['streams'] = streams
+        
+        buttons = ButtonMaker()
+        text = (f"<b>STREAM REORDER SETTINGS ~ {self._listener.tag}</b>\n"
+                f"<code>{self.executor.name}</code>\n"
+                f"File Size: <b>{get_readable_file_size(self.executor.size)}</b>\n\n")
+        
+        audio_streams = [s for s in streams if s['codec_type'] == 'audio']
+        remaps = self.executor.data.get('remaps', {})
+        
+        text += "<b>Current Audio Order:</b>\n"
+        for s in audio_streams:
+            lang = s.get('tags', {}).get('language', f'#{s.get("index")}')
+            new_pos = remaps.get(s['index'], f"({s['index']})")
+            text += f"Audio {s['index']} ({lang.title()}) -> Pos {new_pos}\n"
+        
+        text += "\n<b>Select An Audio Stream To Reorder:</b>\n"
+        for s in audio_streams:
+            lang = s.get('tags', {}).get('language', f'#{s.get("index")}')
+            button_text = f"✓ Audio ({s['index']}) ({lang.title()})" if s['index'] in remaps else f"Audio ({s['index']}) ({lang.title()})"
+            buttons.button_data(button_text, f"extra swap_stream_select {s['index']}")
+        
+        buttons.button_data('Cancel', 'extra cancel', 'footer')
+        buttons.button_data('Continue ✓', 'extra swap_continue', 'footer')
+        await self.update_message(text, buttons.build_menu(2))
+
+    async def _select_swap_position(self, selected_stream_index: int):
+        buttons = ButtonMaker()
+        text = (f"<b>STREAM REORDER SETTINGS ~ {self._listener.tag}</b>\n"
+                f"<code>{self.executor.name}</code>\n"
+                f"Selected Stream: <b>{selected_stream_index}</b>\n\n"
+                f"Select the new position for this stream:")
+        
+        occupied_positions = list(self.executor.data.get('remaps', {}).values())
+        total_streams = len([s for s in self.executor.data['streams'] if s['codec_type'] == 'audio'])
+        
+        for i in range(1, total_streams + 1):
+            if i in occupied_positions:
+                continue
+            buttons.button_data(str(i), f"extra swap_position {i}")
+        
+        buttons.button_data('Back', 'extra swap_back', 'footer')
+        buttons.button_data('Cancel', 'extra cancel', 'footer')
+        await self.update_message(text, buttons.build_menu(5))
+
     async def convert_select(self, streams: dict):
         buttons = ButtonMaker()
         hvid = '1080p'
-        resolution = {'1080p': 'Convert 1080p', '720p': 'Convert 720p',
-                      '540p': 'Convert 540p', '480p': 'Convert 480p', '360p': 'Convert 360p'}
+        resolution = {'1080p': '1080p', '720p': '720p', '540p': '540p', '480p': '480p', '360p': '360p'}
         
         for stream in streams:
             if stream.get('codec_type') == 'video':
@@ -101,7 +196,6 @@ class ExtraSelect:
     async def get_buttons(self, *args):
         future = self._event_handler()
         
-        # Dynamically call the correct select method based on the mode
         select_method = getattr(self, f'{self.executor.mode}_select', None)
         if callable(select_method):
             await select_method(*args)
@@ -114,7 +208,6 @@ class ExtraSelect:
         if self.is_cancel:
             self.executor.data = None
             self.executor.is_cancel = True
-            await self._listener.onUploadError(f'{VID_MODE.get(self.executor.mode, "Process")} stopped by user!')
         
         self.event.set()
 
@@ -173,3 +266,54 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
         await obj.show_conversion_options(obj.executor.data['resolution'])
     elif cmd == 'start_conversion':
         obj.event.set()
+
+    # Stream Swap Logic
+    elif cmd == 'swap_stream_select':
+        stream_index = int(data[2])
+        obj.swap_selection['selected_stream'] = stream_index
+        await obj._select_swap_position(stream_index)
+    elif cmd == 'swap_position':
+        old_stream_index = obj.swap_selection.get('selected_stream')
+        new_position = int(data[2])
+        remaps = obj.executor.data.get('remaps', {})
+        # Invert mapping to check if new position is taken
+        inverted_remaps = {v: k for k, v in remaps.items()}
+        if new_position in inverted_remaps:
+            # Swap streams
+            remaps[inverted_remaps[new_position]] = remaps.get(old_stream_index)
+        remaps[old_stream_index] = new_position
+        obj.executor.data['remaps'] = remaps
+        await obj.swap_stream_select(obj.executor.data['streams'])
+    elif cmd == 'swap_back':
+        await obj.swap_stream_select(obj.executor.data['streams'])
+    elif cmd == 'swap_continue':
+        obj.event.set()
+
+    # Stream Remove Logic
+    elif cmd == 'rmstream':
+        ddict = obj.executor.data
+        sub_cmd = data[2]
+        if sub_cmd == 'reset':
+            ddict['sdata'].clear()
+        elif sub_cmd == 'continue':
+            if ddict.get('sdata'):
+                obj.event.set()
+            else:
+                await query.answer('Please select at least one stream!', show_alert=True)
+            return
+        elif sub_cmd == 'reverse':
+            all_non_video = {k for k, v in ddict['stream'].items() if v.get('type') != 'video'}
+            selected = set(ddict['sdata'])
+            ddict['sdata'] = list(all_non_video - selected)
+        elif sub_cmd.isdigit():
+            mapindex = int(sub_cmd)
+            if mapindex in ddict['sdata']:
+                ddict['sdata'].remove(mapindex)
+            else:
+                ddict['sdata'].append(mapindex)
+        
+        # Update button text to show selection
+        for k, v in ddict['stream'].items():
+            v['info'] = f"{'✓ ' if k in ddict['sdata'] else ''}{v['type'].title()} ~ {v['info'].split('~')[1].strip()}"
+        
+        await obj.update_message(*obj._streams_select(ddict['stream']))
