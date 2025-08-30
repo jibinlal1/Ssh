@@ -377,4 +377,3 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             obj.event.set()
             return
         await obj.subsync_select()
-b
