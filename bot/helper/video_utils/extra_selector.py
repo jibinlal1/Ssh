@@ -43,6 +43,17 @@ class ExtraSelect:
             self._reply = await sendMessage(text, self._listener.message, buttons)
         else:
             await editMessage(text, self._reply, buttons)
+            
+    async def get_buttons(self, *args):
+        future = self._event_handler()
+        if extra_mode := getattr(self, f'{self.executor.mode}_select', None):
+            await extra_mode(*args)
+        await wrap_future(future)
+        self.executor.event.set()
+        await deleteMessage(self._reply)
+        if self.is_cancel:
+            self._listener.suproc = 'cancelled'
+            await self._listener.onUploadError(f'{VID_MODE[self.executor.mode]} stopped by user!')
 
     def _streams_select(self, streams: dict=None):
         buttons = ButtonMaker()
@@ -213,7 +224,8 @@ class ExtraSelect:
 
     async def _select_convert_options(self, resolution):
         buttons = ButtonMaker()
-        self.executor.data = {'resolution': resolution}
+        if not self.executor.data or self.executor.data.get('resolution') != resolution:
+            self.executor.data = {'resolution': resolution}
         default_options = {'codec': 'libx264', 'preset': 'medium', 'crf': '23', 'audio_codec': 'aac', 'audio_channels': '2', 'bitrate': '160k'}
 
         for key, value in default_options.items():
