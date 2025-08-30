@@ -231,7 +231,7 @@ class ExtraSelect:
         buttons = ButtonMaker()
         if not self.executor.data or self.executor.data.get('resolution') != resolution:
             self.executor.data = {'resolution': resolution}
-        default_options = {'codec': 'libx264', 'preset': 'medium', 'crf': '23', 'audio_codec': 'aac', 'audio_channels': '2', 'bitrate': '160k'}
+        default_options = {'codec': 'libx264', 'preset': 'medium', 'crf': '23', 'audio_codec': 'copy', 'audio_channels': '2', 'bitrate': '160k'}
 
         for key, value in default_options.items():
             if key not in self.executor.data:
@@ -242,12 +242,16 @@ class ExtraSelect:
         text += f'Preset: <b>{self.executor.data["preset"]}</b>\n'
         text += f'CRF: <b>{self.executor.data["crf"]}</b>\n'
         text += f'Audio Codec: <b>{self.executor.data["audio_codec"]}</b>\n'
-        text += f'Audio Channels: <b>{self.executor.data["audio_channels"]}</b>\n'
-        text += f'Bitrate: <b>{self.executor.data["bitrate"]}</b>\n\n'
+        
+        if self.executor.data["audio_codec"] == 'copy':
+            text += f'Audio Channels: <b>(Ignored)</b>\n'
+            text += f'Bitrate: <b>(Ignored)</b>\n\n'
+        else:
+            text += f'Audio Channels: <b>{self.executor.data["audio_channels"]}</b>\n'
+            text += f'Bitrate: <b>{self.executor.data["bitrate"]}</b>\n\n'
 
         buttons.button_data('Reset', 'extra convert_reset', 'header')
         
-        # Arranging buttons in a grid for better UI
         buttons.button_data('Video Codec', 'extra convert_opt video_codec')
         buttons.button_data('Preset', 'extra convert_opt preset')
         buttons.button_data('CRF', 'extra convert_opt crf')
