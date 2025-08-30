@@ -224,7 +224,8 @@ class ExtraSelect:
                     hvid = vid_height
                 break
         keys = list(resolution)
-        for key in keys[keys.index(hvid) + 1:]:
+        # FIX: include the selected resolution (and below) to show all options including 360p
+        for key in keys[keys.index(hvid):]:
             buttons.button_data(resolution[key], f'extra convert {key}')
         buttons.button_data('Cancel', 'extra cancel', 'footer')
         await self.update_message(f'{self._listener.tag}, Select available resolution to convert.\n<code>{self.executor.name}</code>', buttons.build_menu(2))
@@ -445,10 +446,14 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             obj.executor.data['audio'] = int(data[2])
             obj.event.set()
 
+        # --- FIXED convert case so it shows options menu after selecting resolution ---
+
         case 'convert':
             await query.answer()
-            obj.executor.data = data[2]
-            obj.event.set()
+            resolution = data[2]
+            await obj.show_conversion_options(resolution)
+
+        # --- Continue your existing handlers ---
 
         case 'rmstream':
             ddict: dict = obj.executor.data
@@ -523,12 +528,6 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
 
         # --- New Menu Handlers for Conversion Options ---
 
-        case 'convert_select':
-            # User just selected resolution to convert
-            await query.answer()
-            resolution = data[2]
-            await obj.show_conversion_options(resolution)
-
         case 'set_preset':
             await query.answer()
             await obj.select_preset_option()
@@ -589,9 +588,7 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
 
         case 'start_conversion':
             await query.answer('Starting conversion...')
-            # You would call your conversion execution code here,
-            # passing all options contained in obj.executor.data
+            # Implement your conversion start here using obj.executor.data options
             obj.event.set()
 
-        # Add other existing cases as needed for your full feature set
-
+        # Add any other existing cases as needed...
