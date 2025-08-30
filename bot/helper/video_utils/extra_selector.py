@@ -145,7 +145,7 @@ class ExtraSelect:
                 self.executor.data['video'] = indexmap
             if codec_type == 'audio':
                 buttons.button_data(f'Audio ~ {lang.upper()}', f'extra compress {indexmap}')
-        buttons.button_data('Continue', 'extra compress 0')
+        buttons.button_data('Continue', 'extra compress no_audio')
         buttons.button_data('Cancel', 'extra cancel')
         await self.update_message(f'{self._listener.tag}, Select available audio or press <b>Continue (no audio)</b>.\n<code>{self.executor.name}</code>', buttons.build_menu(2))
 
@@ -194,7 +194,7 @@ class ExtraSelect:
                 f"Select the new position for this stream:")
         
         # Determine occupied positions from remaps
-        occupied_positions = list(self.swap_selection['remaps'].values())
+        occupied_positions = list(self.executor.data.get('remaps', {}).values())
         
         # Dynamically create buttons for available positions
         for i in range(1, total_streams + 1):
@@ -418,7 +418,11 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             await gather(query.answer(), obj.subsync_select(None))
         case 'compress':
             await query.answer()
-            obj.executor.data['audio'] = int(data[2])
+            audio_selection = data[2]
+            if audio_selection == 'no_audio':
+                obj.executor.data['audio'] = None
+            else:
+                obj.executor.data['audio'] = int(audio_selection)
             obj.event.set()
         case 'convert':
             await query.answer()
