@@ -96,12 +96,9 @@ class VidEcxecutor(FFProgress):
                 return
 
         try:
-            # Match the mode and execute the corresponding method
-            if handler := getattr(self, f'_{self.mode}_select', getattr(self, f'_vid_{self.mode}', None)):
+            if handler := getattr(self, f'_{self.mode}', None):
                 return await handler(**kwargs)
-            elif self.mode in ['vid_vid', 'vid_aud', 'vid_sub']: # Special cases for merging
-                 return await getattr(self, f'_merge_{self.mode.split("_")[1]}s')()
-            else: # Default to convert
+            else:
                 return await self._vid_convert()
         except Exception as e:
             LOGGER.error(e, exc_info=True)
@@ -159,7 +156,6 @@ class VidEcxecutor(FFProgress):
             
             if len(all_files) == 1:
                 self._up_path = all_files[0]
-            # If multiple files, path remains the directory
         return self._up_path
 
     async def _name_base_dir(self, path, info: str=None, multi: bool=False):
@@ -178,7 +174,7 @@ class VidEcxecutor(FFProgress):
         await self._send_status(status)
         try:
             process = await create_subprocess_exec(*cmd, stderr=PIPE)
-            _, stderr_bytes = await gather(self.progress(status), process.wait())
+            _, stderr_bytes = await process.communicate()
             stderr = stderr_bytes.decode().strip() if stderr_bytes else ''
 
             if process.returncode == 0:
@@ -221,7 +217,6 @@ class VidEcxecutor(FFProgress):
 
         await self._queue()
         
-        # Retrieve all user-selected options with defaults
         video_codec = self.data.get('video_codec', 'libx264')
         preset = self.data.get('preset', 'medium')
         crf = self.data.get('crf', 23)
@@ -257,6 +252,87 @@ class VidEcxecutor(FFProgress):
             if not await self._run_cmd(cmd):
                 if self.is_cancel: break
                 await self.listener.onUploadError("Failed to convert video.")
+                return self._up_path
+
+        return await self._final_path()
+
+    async def _rmstream(self, **kwargs):
+        file_list = await self._get_files()
+        if not file_list:
+            await self.listener.onUploadError('No video files found.')
+            return self._up_path
+
+        main_video = file_list[0]
+        if self._metadata:
+            streams = self._metadata[0]
+        else:
+            self.size = await get_path_size(main_video)
+            streams, _ = await get_metavideo(main_video)
+            
+        self._start_handler(streams)
+        await self.event.wait()
+
+        if self.is_cancel or not self.data:
+            return self._up_path
+        
+        await self._queue()
+        
+        for file in file_list:
+            self.path = file
+            base_dir, _ = ospath.split(self.path)
+            self.outfile = ospath.join(base_dir, self.name)
+            self._files.append(self.path)
+            
+            cmd = [FFMPEG_NAME, '-hide_banner', '-y', '-i', self.path]
+            maps = [f'-map 0:{s["map"]}' for s in self.data.get('stream', {}).values() if s['map'] not in self.data.get('sdata', [])]
+            cmd.extend(maps)
+            cmd.extend(['-c', 'copy', self.outfile])
+            
+            if not await self._run_cmd(cmd):
+                return self._up_path
+                
+        return await self._final_path()
+
+    async def _swap_stream(self, **kwargs):
+        file_list = await self._get_files()
+        if not file_list:
+            await self.listener.onUploadError('No video files found.')
+            return self._up_path
+
+        main_video = file_list[0]
+        if self._metadata:
+            streams = self._metadata[0]
+        else:
+            self.size = await get_path_size(main_video)
+            streams, _ = await get_metavideo(main_video)
+
+        self._start_handler(streams)
+        await self.event.wait()
+        
+        if self.is_cancel or not self.data:
+            return self._up_path
+
+        await self._queue()
+        
+        for file in file_list:
+            self.path = file
+            base_dir, _ = ospath.split(self.path)
+            self.outfile = ospath.join(base_dir, self.name)
+            self._files.append(self.path)
+            
+            cmd = [FFMPEG_NAME, '-hide_banner', '-y', '-i', self.path]
+            remaps = self.data.get('remaps', {})
+            video_maps = [f'-map 0:v']
+            audio_maps = [f'-map 0:a:{i}' for i in range(len([s for s in streams if s['codec_type'] == 'audio']))]
+            
+            for old, new in remaps.items():
+                audio_maps[new - 1] = f'-map 0:a:{old}'
+            
+            cmd.extend(video_maps)
+            cmd.extend(audio_maps)
+            cmd.extend([f'-map 0:s?', '-c', 'copy', self.outfile])
+            
+            if not await self._run_cmd(cmd):
                 return self._up_path
 
         return await self._final_path()
