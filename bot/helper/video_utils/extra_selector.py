@@ -1,5 +1,4 @@
 from __future__ import annotations
-from ast import literal_eval
 from asyncio import Event, wait_for, wrap_future
 from functools import partial
 from pyrogram.filters import regex, user
@@ -177,6 +176,36 @@ class ExtraSelect:
         buttons.button_data('Cancel', 'extra cancel', 'footer')
         await self.update_message(f'{self._listener.tag}, Select a resolution to convert.\n<code>{self.executor.name}</code>', buttons.build_menu(2))
 
+    async def subsync_select(self, *args):
+        buttons = ButtonMaker()
+        text = ''
+        index = 1
+        if not self.status:
+            text = 'Select a subtitle file to sync:\n'
+            for position, file in self.executor.data['list'].items():
+                if file.endswith(('.srt', '.ass')):
+                    ref_file = self.executor.data['final'].get(position, {}).get('ref', '')
+                    text += f'{index}. {file} {"✓ " if ref_file else ""}\n'
+                    but_txt = f'✓ {index}' if ref_file else str(index)
+                    buttons.button_data(but_txt, f'extra subsync {position}')
+                    index += 1
+            if self.executor.data.get('final'):
+                buttons.button_data('Continue', 'extra subsync continue', 'footer')
+        else:
+            file = self.executor.data['list'][self.status]
+            text = f'Syncing: <b>{file}</b>\n'
+            if ref := self.executor.data['final'].get(self.status, {}).get('ref'):
+                 text += f'With Reference: <b>{ref}</b>\n'
+            text += '\nSelect a reference video/audio file:\n'
+            self.executor.data['final'][self.status] = {'file': file}
+            for position, file_ref in self.executor.data['list'].items():
+                if position != self.status and not file_ref.endswith(('.srt', '.ass')):
+                    text += f'{index}. {file_ref}\n'
+                    buttons.button_data(str(index), f'extra subsync select {position}')
+                    index += 1
+        buttons.button_data('Cancel', 'extra cancel', 'footer')
+        await self.update_message(text, buttons.build_menu(5))
+
     async def show_conversion_options(self, resolution: str):
         self.executor.data['resolution'] = resolution
         buttons = ButtonMaker()
@@ -322,7 +351,7 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
                 ddict['sdata'].append(mapindex)
         
         for k, v in ddict['stream'].items():
-            info = v['info'].replace('✓ ', '')
+            info = ' '.join(v['info'].split()[1:])
             if k in ddict['sdata']:
                 v['info'] = f"✓ {info}"
             else:
@@ -337,3 +366,14 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
         elif sub_cmd == 'all':
             obj.executor.data['sdata'] = list(obj.executor.data['stream'].keys())
             obj.event.set()
+    elif cmd == 'subsync':
+        sub_cmd = data[2]
+        if sub_cmd.isdigit():
+            obj.status = int(sub_cmd)
+        elif sub_cmd == 'select':
+            obj.executor.data['final'][obj.status] = {'file': obj.executor.data['list'][obj.status], 'ref': obj.executor.data['list'][int(data[3])]}
+            obj.status = ''
+        elif sub_cmd == 'continue':
+            obj.event.set()
+            return
+        await obj.subsync_select()
