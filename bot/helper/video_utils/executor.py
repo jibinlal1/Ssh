@@ -225,10 +225,10 @@ class VidEcxecutor(FFProgress):
         resolution = self.data if isinstance(self.data, str) else self.data.get('resolution', '720p')
         scale_width = self._qual.get(resolution, '1280')
 
-   for file in file_list:
-        self.path = file
-        base_name, ext = ospath.splitext(self.name)
-        self.outfile = ospath.join(ospath.dirname(self.path), f'{base_name}_{resolution}{ext}')
+        for file in file_list:
+            self.path = file
+            base_name, ext = ospath.splitext(self.name)
+            self.outfile = ospath.join(ospath.dirname(self.path), f'{base_name}_{resolution}{ext}')
 
         cmd = [
             FFMPEG_NAME,
