@@ -205,15 +205,13 @@ class VidEcxecutor(FFProgress):
                          VID_MODE[self.mode], self.outfile)
             self._files.clear()
 
-    
-  
     async def _vid_convert(self):
         file_list = await self._get_files()
 
         if not file_list:
             return self._up_path
 
-    # Get encoding options with defaults
+        # Get encoding options with defaults
         video_codec = self.data.get('video_codec', 'libx264')
         audio_codec = self.data.get('audio_codec', 'aac')
         audio_bitrate = self.data.get('audio_bitrate', '160k')
@@ -221,7 +219,7 @@ class VidEcxecutor(FFProgress):
         preset = self.data.get('preset', 'medium')
         crf = self.data.get('crf', '23')
     
-    # Get resolution key
+        # Get resolution key
         resolution = self.data if isinstance(self.data, str) else self.data.get('resolution', '720p')
         scale_width = self._qual.get(resolution, '1280')
 
@@ -230,36 +228,50 @@ class VidEcxecutor(FFProgress):
             base_name, ext = ospath.splitext(self.name)
             self.outfile = ospath.join(ospath.dirname(self.path), f'{base_name}_{resolution}{ext}')
 
-        cmd = [
-            FFMPEG_NAME,
-            '-hide_banner', '-ignore_unknown', '-y',
-            '-i', self.path,
-            '-vf', f'scale={scale_width}:-2',
-            '-c:v', video_codec,
-            '-preset', preset,
-            '-crf', crf,
-            '-c:a', audio_codec,
-            '-b:a', audio_bitrate,
-            '-ac', str(audio_channels),
-            self.outfile
-        ]
+            cmd = [
+                FFMPEG_NAME,
+                '-hide_banner', '-ignore_unknown', '-y',
+                '-i', self.path,
+                '-vf', f'scale={scale_width}:-2',
+                '-c:v', video_codec,
+                '-preset', preset,
+                '-crf', crf,
+                '-c:a', audio_codec,
+                '-b:a', audio_bitrate,
+                '-ac', str(audio_channels),
+                self.outfile
+            ]
 
-        await self._run_cmd(cmd)
+            await self._run_cmd(cmd)
+            if self.is_cancel:
+                break
+
+        return await self._final_path()
+
+    async def _rm_stream(self):
+        file_list = await self._get_files()
+        multi = len(file_list) > 1
+        if not file_list:
+            return self._up_path
+
+        if self._metadata:
+            base_dir = self.listener.dir
+            await makedirs(base_dir, exist_ok=True)
+            streams = self._metadata[0]
+        else:
+            main_video = file_list[0]
+            base_dir, (streams, _), self.size = await gather(self._name_base_dir(main_video, 'Remove', multi),
+                                                             get_metavideo(main_video), get_path_size(main_video))
+        
+        self._start_handler(streams, True)
+        await gather(self._send_status(), self.event.wait())
+        await self._queue()
+        
         if self.is_cancel:
-            break
-
-    return await self._final_path()
-
-
-
-        
-
-    # ... (rest of your methods unchanged, all indented properly as per your original file)
-
-        
-
-  #here
-
+            return
+        if not self.data:
+            return self._up_path
+            
         self.outfile = self._up_path
         for file in file_list:
             self.path = file
