@@ -350,6 +350,9 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             await obj.update_message(text, buttons.build_menu(3))
         case 'convert_set':
             await query.answer()
+            if obj.executor.data is None:
+                await query.answer("Please select a resolution first!", show_alert=True)
+                return
             option_type = data[2]
             value = data[3]
             obj.executor.data[option_type] = value
