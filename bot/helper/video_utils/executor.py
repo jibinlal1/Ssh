@@ -228,7 +228,8 @@ class VidEcxecutor(FFProgress):
 
         for file in file_list:
             self.path = file
-            base_name, ext = ospath.splitext(self.name)
+            # This line is now corrected to use the input file's name
+            base_name, ext = ospath.splitext(ospath.basename(self.path))
             self.outfile = ospath.join(ospath.dirname(self.path), f'{base_name}_{resolution}{ext}')
 
             cmd = [
