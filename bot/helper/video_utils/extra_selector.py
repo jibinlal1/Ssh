@@ -249,20 +249,15 @@ class ExtraSelect:
         
         # Video Codec
         buttons.button_data('Video Codec', 'extra convert_opt video_codec', 'header')
-        # Preset
         buttons.button_data('Preset', 'extra convert_opt preset', 'header')
-        # CRF
         buttons.button_data('CRF', 'extra convert_opt crf', 'header')
-        # Audio Codec
         buttons.button_data('Audio Codec', 'extra convert_opt audio_codec', 'header')
-        # Audio Channels
         buttons.button_data('Audio Channels', 'extra convert_opt audio_channels', 'header')
-        # Bitrate
         buttons.button_data('Bitrate', 'extra convert_opt bitrate', 'header')
         
-        buttons.button_data('Continue', 'extra convert_continue', 'footer')
-        buttons.button_data('Back', 'extra convert_back', 'footer')
         buttons.button_data('Cancel', 'extra cancel', 'footer')
+        buttons.button_data('Back', 'extra convert_back', 'header')
+        buttons.button_data('Continue', 'extra convert_continue', 'footer')
         
         await self.update_message(text, buttons.build_menu(2))
 
@@ -339,9 +334,9 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             options = {
                 'video_codec': ['libx264', 'libx265'],
                 'preset': ['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium', 'slow', 'slower', 'veryslow'],
-                'crf': [str(i) for i in range(18, 29)],
+                'crf': [str(i) for i in range(18, 32)],  # Updated range for CRF
                 'audio_codec': ['copy', 'aac', 'ac3'],
-                'audio_channels': ['2', '1'],
+                'audio_channels': ['2', '1', '6'],       # Added 6 audio channels
                 'bitrate': ['96k', '128k', '160k', '192k', '256k', '320k']
             }
             
