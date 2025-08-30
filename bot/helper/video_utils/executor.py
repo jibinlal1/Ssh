@@ -208,40 +208,68 @@ class VidEcxecutor(FFProgress):
             self._files.clear()
 
     async def _vid_extract(self):
-        if file_list := await self._get_files():
-            if self._metadata:
-                base_dir = ospath.join(self.listener.dir, self.name.split('.', 1)[0])
-                await makedirs(base_dir, exist_ok=True)
-                streams = self._metadata[0]
-            else:
-                main_video = file_list[0]
-                base_dir, (streams, _), self.size = await gather(self._name_base_dir(main_video, 'Extract', len(file_list) > 1),
-                                                                 get_metavideo(main_video), get_path_size(main_video))
-            self._start_handler(streams)
-            await gather(self._send_status(), self.event.wait())
-        else:
+        file_list = await self._get_files()
+        multi = len(file_list) > 1
+        if not file_list:
             return self._up_path
 
+        # --- Get initial streams from the first file for the user selection menu ---
+        if self._metadata:
+            base_dir = self.listener.dir
+            await makedirs(base_dir, exist_ok=True)
+            initial_streams = self._metadata[0]
+        else:
+            main_video = file_list[0]
+            base_dir, (initial_streams, _), self.size = await gather(self._name_base_dir(main_video, 'Extract', multi),
+                                                                     get_metavideo(main_video), get_path_size(main_video))
+
+        self._start_handler(initial_streams)
+        await gather(self._send_status(), self.event.wait())
         await self._queue()
+
         if self.is_cancel:
             return
-        if not self.data:
-            return self._up_path
+        if not self.data or not self.data.get('sdata'):
+            await self.listener.onUploadError('No streams selected for extraction!')
+            return
 
-        if await aiopath.isfile(self._up_path) or self._metadata:
-            base_name = self.name if self._metadata else ospath.basename(self.path)
-            self._up_path = ospath.join(base_dir, f'{base_name.rsplit(".", 1)[0]} (EXTRACT)')
-            await makedirs(self._up_path, exist_ok=True)
-            base_dir = self._up_path
-
-        task_files = []
+        # --- Main processing loop ---
         for file in file_list:
             self.path = file
-            if not self._metadata:
-                self.size = await get_path_size(self.path)
-            base_name = self.name if self._metadata else ospath.basename(self.path)
-            base_name = base_name.rsplit('.', 1)[0]
-            extension = dict(zip(['audio', 'subtitle', 'video'], self.data['extension']))
+
+            # FIX: Get metadata for the CURRENT file inside the loop
+            if self._metadata:
+                streams = self._metadata[0]
+            else:
+                base_dir, (streams, _), self.size = await gather(self._name_base_dir(self.path, 'Extract', multi),
+                                                                 get_metavideo(self.path),
+                                                                 get_path_size(self.path))
+
+            for stream_index in self.data['sdata']:
+                try:
+                    # Now 'streams' is correct for the current file
+                    stream_info = streams[int(stream_index)]
+                    codec_type = stream_info.get('codec_type')
+                except (IndexError, ValueError, KeyError):
+                    # Improved logging to show which file and stream failed
+                    LOGGER.error(f'Could not find stream with index {stream_index} in file "{ospath.basename(file)}". Skipping.')
+                    continue
+
+                ext_map = {'video': '.mkv', 'audio': '.m4a', 'subtitle': '.srt'}
+                ext = ext_map.get(codec_type, '.dat')
+                if codec_type == 'subtitle' and stream_info.get('codec_name') == 'ass':
+                    ext = '.ass'
+
+                base_name, _ = ospath.splitext(ospath.basename(self.path))
+                self.outfile = ospath.join(base_dir, f"{base_name}_({codec_type}_{stream_index}){ext}")
+
+                cmd = [FFMPEG_NAME, '-hide_banner', '-y', '-i', self.path,
+                       '-map', f'0:{stream_index}', '-c', 'copy', self.outfile]
+
+                await self._run_cmd(cmd)
+                if self.is_cancel:
+                    return self._up_path
+        return self._up_path
 
     async def _vid_convert(self):
         file_list = await self._get_files()
