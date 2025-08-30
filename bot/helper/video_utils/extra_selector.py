@@ -255,9 +255,9 @@ class ExtraSelect:
         buttons.button_data('Audio Channels', 'extra convert_opt audio_channels')
         buttons.button_data('Bitrate', 'extra convert_opt bitrate')
         
-        buttons.button_data('Continue', 'extra convert_continue', 'footer')
-        buttons.button_data('Back', 'extra convert_back', 'footer')
         buttons.button_data('Cancel', 'extra cancel', 'footer')
+        buttons.button_data('Back', 'extra convert_back', 'footer')
+        buttons.button_data('Continue', 'extra convert_continue', 'footer')
         
         await self.update_message(text, buttons.build_menu(2))
 
