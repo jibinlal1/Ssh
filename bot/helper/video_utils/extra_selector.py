@@ -21,7 +21,7 @@ class ExtraSelect:
         self.executor = executor
         self.event = Event()
         self.is_cancel = False
-        self.extension: list[str] = [None, None, 'mkv']
+        self.extension: list[str] = ['aac', 'srt', 'mkv']
         self.status = ''
         self.swap_selection = {'selected_stream': None, 'remaps': {}}
         
