@@ -210,6 +210,10 @@ class VidEcxecutor(FFProgress):
 
         if not file_list:
             return self._up_path
+        
+        if self.data is None:
+        self.data = {}
+
 
         # Get encoding options with defaults
         video_codec = self.data.get('video_codec', 'libx264')
