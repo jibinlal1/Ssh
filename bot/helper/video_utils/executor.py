@@ -273,29 +273,27 @@ class VidEcxecutor(FFProgress):
             self.size = await get_path_size(main_video)
             streams, _ = await get_metavideo(main_video)
 
-        # Show resolution selection buttons
         self._start_handler(streams)
         await gather(self._send_status(), self.event.wait())
         await self._queue()
 
         if self.is_cancel:
             return
-        if not self.data: # If no selection is made
+        if not self.data:
             await self.listener.onUploadError('No options selected!')
             return
 
-        # Get encoding options from user selection
         video_codec = self.data.get('video_codec', 'libx264')
+        preset = self.data.get('preset', 'medium')
+        crf = self.data.get('crf', 23)
         audio_codec = self.data.get('audio_codec', 'aac')
         audio_bitrate = self.data.get('bitrate', '160k')
         audio_channels = self.data.get('audio_channels', 2)
-        preset = self.data.get('preset', 'medium')
-        crf = self.data.get('crf', 23)
         resolution = self.data.get('resolution')
 
         if not resolution:
-             await self.listener.onUploadError('No resolution selected!')
-             return
+            await self.listener.onUploadError('No resolution selected!')
+            return
         scale_width = self._qual.get(resolution, '1280')
 
         for file in file_list:
