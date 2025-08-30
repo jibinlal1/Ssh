@@ -207,22 +207,24 @@ class VidEcxecutor(FFProgress):
                          VID_MODE[self.mode], self.outfile)
             self._files.clear()
 
+    
     async def _vid_extract(self):
         file_list = await self._get_files()
         multi = len(file_list) > 1
         if not file_list:
             return self._up_path
 
+        # --- Get initial streams from the first file for the user selection menu ---
         if self._metadata:
             base_dir = self.listener.dir
             await makedirs(base_dir, exist_ok=True)
-            streams = self._metadata[0]
+            initial_streams = self._metadata[0]
         else:
             main_video = file_list[0]
-            base_dir, (streams, _), self.size = await gather(self._name_base_dir(main_video, 'Extract', multi),
-                                                             get_metavideo(main_video), get_path_size(main_video))
+            base_dir, (initial_streams, _), self.size = await gather(self._name_base_dir(main_video, 'Extract', multi),
+                                                                     get_metavideo(main_video), get_path_size(main_video))
 
-        self._start_handler(streams)
+        self._start_handler(initial_streams)
         await gather(self._send_status(), self.event.wait())
         await self._queue()
 
@@ -232,17 +234,26 @@ class VidEcxecutor(FFProgress):
             await self.listener.onUploadError('No streams selected for extraction!')
             return
 
+        # --- Main processing loop ---
         for file in file_list:
             self.path = file
-            if not self._metadata:
-                base_dir, self.size = await gather(self._name_base_dir(self.path, 'Extract', multi), get_path_size(self.path))
+
+            # FIX: Get metadata for the CURRENT file inside the loop
+            if self._metadata:
+                streams = self._metadata[0]
+            else:
+                base_dir, (streams, _), self.size = await gather(self._name_base_dir(self.path, 'Extract', multi),
+                                                                 get_metavideo(self.path),
+                                                                 get_path_size(self.path))
 
             for stream_index in self.data['sdata']:
                 try:
+                    # Now 'streams' is correct for the current file
                     stream_info = streams[int(stream_index)]
                     codec_type = stream_info.get('codec_type')
                 except (IndexError, ValueError, KeyError):
-                    LOGGER.error(f'Could not find stream with index {stream_index}. Skipping.')
+                    # Improved logging to show which file and stream failed
+                    LOGGER.error(f'Could not find stream with index {stream_index} in file "{ospath.basename(file)}". Skipping.')
                     continue
 
                 ext_map = {'video': '.mkv', 'audio': '.m4a', 'subtitle': '.srt'}
@@ -261,10 +272,9 @@ class VidEcxecutor(FFProgress):
                     return self._up_path
         return self._up_path
 
-    async def _vid_convert(self):
-        file_list = await self._get_files()
-        if not file_list:
-            return self._up_path
+
+        
+        
 
         if self._metadata:
             streams = self._metadata[0]
