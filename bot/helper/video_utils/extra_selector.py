@@ -231,7 +231,9 @@ class ExtraSelect:
         buttons = ButtonMaker()
         if not self.executor.data or self.executor.data.get('resolution') != resolution:
             self.executor.data = {'resolution': resolution}
-        default_options = {'codec': 'libx264', 'preset': 'medium', 'crf': '23', 'audio_codec': 'copy', 'audio_channels': '2', 'bitrate': '160k'}
+        default_options = {'codec': 'libx264', 'preset': 'medium', 'crf': '23', 
+                           'audio_codec': 'copy', 'audio_channels': '2', 'bitrate': '160k',
+                           'pix_fmt': 'yuv420p'}
 
         for key, value in default_options.items():
             if key not in self.executor.data:
@@ -239,6 +241,8 @@ class ExtraSelect:
 
         text = f'<b>Conversion Settings for {resolution}</b>\nAdjust parameters or Continue with defaults.\n\n'
         text += f'Video Codec: <b>{self.executor.data["codec"]}</b>\n'
+        bit_depth = '10-bit' if self.executor.data.get("pix_fmt") == 'yuv420p10le' else '8-bit'
+        text += f'Bit Depth: <b>{bit_depth}</b>\n'
         text += f'Preset: <b>{self.executor.data["preset"]}</b>\n'
         text += f'CRF: <b>{self.executor.data["crf"]}</b>\n'
         text += f'Audio Codec: <b>{self.executor.data["audio_codec"]}</b>\n'
@@ -253,10 +257,11 @@ class ExtraSelect:
         buttons.button_data('Reset', 'extra convert_reset', 'header')
         
         buttons.button_data('Video Codec', 'extra convert_opt video_codec')
+        bit_depth_text = 'Switch to 8-bit' if bit_depth == '10-bit' else 'Switch to 10-bit'
+        buttons.button_data(bit_depth_text, 'extra convert_pix_fmt')
         buttons.button_data('Preset', 'extra convert_opt preset')
         buttons.button_data('CRF', 'extra convert_opt crf')
         buttons.button_data('Audio Codec', 'extra convert_opt audio_codec')
-        buttons.button_data('Audio Channels', 'extra convert_opt audio_channels')
         buttons.button_data('Bitrate', 'extra convert_opt bitrate')
         
         buttons.button_data('Cancel', 'extra cancel', 'footer')
@@ -329,6 +334,14 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
             resolution = data[2]
             obj.executor.data = {'resolution': resolution}
             await obj._select_convert_options(resolution)
+        case 'convert_pix_fmt':
+            await query.answer()
+            current_fmt = obj.executor.data.get('pix_fmt', 'yuv420p')
+            if current_fmt == 'yuv420p10le':
+                obj.executor.data['pix_fmt'] = 'yuv420p'
+            else:
+                obj.executor.data['pix_fmt'] = 'yuv420p10le'
+            await obj._select_convert_options(obj.executor.data['resolution'])
         case 'convert_opt':
             await query.answer()
             option_type = data[2]
