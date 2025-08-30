@@ -314,18 +314,20 @@ class VidEcxecutor(FFProgress):
             cmd.extend(['-vf', f'scale={resolution_val}:-2'])
             cmd.extend(['-c:v', self.data['codec']])
             
-            if self.data['codec'] in ['libx264', 'libx265']:
+            if self.data['codec'] == 'libx264':
                 cmd.extend(['-preset', self.data['preset']])
                 cmd.extend(['-crf', self.data['crf']])
 
-            if self.data['codec'] == 'libx265':
+            elif self.data['codec'] == 'libx265':
+                cmd.extend(['-preset', self.data['preset']])
+                cmd.extend(['-crf', self.data['crf']])
                 cmd.extend(['-pix_fmt', 'yuv420p', '-profile:v', 'main'])
                 
             # Add audio and stream mapping options
-            cmd.extend(['-c:a', self.data['audio_codec']])
-            
-            # Use -ac for audio channels
-            if self.data['audio_codec'] != 'copy':
+            if self.data['audio_codec'] == 'copy':
+                cmd.extend(['-c:a', 'copy'])
+            else:
+                cmd.extend(['-c:a', self.data['audio_codec']])
                 cmd.extend(['-ac', self.data['audio_channels']])
                 cmd.extend(['-b:a', self.data['bitrate']])
 
