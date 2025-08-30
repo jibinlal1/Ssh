@@ -45,7 +45,7 @@ class VidEcxecutor(FFProgress):
         self._gid = gid
         self._start_time = time()
         self._files = []
-        self._qual = {'4k': '3840', '2k': '2560', '1080p': '1920', '720p': '1280', '540p': '960', '480p': '854', '360p': '640'}
+        self._qual = {'1080p': '1920', '720p': '1280', '540p': '960', '480p': '854', '360p': '640'}
         super().__init__()
         self.is_cancel = False
 
@@ -109,7 +109,7 @@ class VidEcxecutor(FFProgress):
                     return await self._swap_streams()
                 case 'extract':
                     return await self._vid_extract()
-                case 'convert':
+                case _:
                     return await self._vid_convert()
         except Exception as e:
             LOGGER.error(e, exc_info=True)
@@ -183,10 +183,7 @@ class VidEcxecutor(FFProgress):
     async def _run_cmd(self, cmd, status='prog'):
         await self._send_status(status)
         self.listener.suproc = await create_subprocess_exec(*cmd, stderr=PIPE)
-        if status != 'no_progress':
-            _, code = await gather(self.progress(status), self.listener.suproc.wait())
-        else:
-            _, code = await self.listener.suproc.wait()
+        _, code = await gather(self.progress(status), self.listener.suproc.wait())
         if code == 0:
             if not self.listener.seed:
                 await gather(*[clean_target(file) for file in self._files])
@@ -303,61 +300,11 @@ class VidEcxecutor(FFProgress):
         for file in file_list:
             self.path = file
             if not self._metadata:
-                _, self.size = await gather(self._name_base_dir(self.path, 'Convert', multi), get_path_size(self.path))
+                _, self.size = await gather(self._name_base_dir(self.path, f'Convert-{self.data}', multi), get_path_size(self.path))
             self.outfile = ospath.join(base_dir, self.name)
             self._files.append(self.path)
-
-            if isinstance(self.data, dict):
-                # Custom FFmpeg options
-                cmd = [FFMPEG_NAME, '-hide_banner', '-ignore_unknown', '-y', '-i', self.path]
-                
-                vfilters = []
-                
-                # Set video codec
-                vcodec = self.data.get('vcodec')
-                if vcodec == 'hevc':
-                    cmd.extend(['-c:v', 'libx265'])
-                elif vcodec:
-                    cmd.extend(['-c:v', vcodec])
-                else:
-                    cmd.extend(['-c:v', 'copy'])
-                
-                # Set CRF, if available
-                if 'crf' in self.data:
-                    cmd.extend(['-crf', str(self.data['crf'])])
-                
-                # Set bitrate, if available
-                if 'bitrate' in self.data:
-                    cmd.extend(['-b:v', self.data['bitrate']])
-
-                # Set preset, if available
-                if 'preset' in self.data:
-                    cmd.extend(['-preset', self.data['preset']])
-                
-                # Set resolution, if available
-                if 'resolution' in self.data:
-                    # Use the self._qual dictionary to map resolution names to pixel values
-                    res_value = self.data['resolution']
-                    if res_value in self._qual:
-                        vfilters.append(f'scale={self._qual[res_value]}:-2')
-                    else:
-                        vfilters.append(f'scale={res_value}:-2')
-
-                # Set bit depth, if available
-                if self.data.get('bit_depth') == '10bit':
-                    cmd.extend(['-pix_fmt', 'yuv420p10le'])
-                    
-                if vfilters:
-                    cmd.extend(['-vf', ','.join(vfilters)])
-                
-                # Map streams
-                cmd.extend(['-map', '0:v:0', '-map', '0:a:?', '-map', '0:s:?', '-c:a', 'copy', '-c:s', 'copy', self.outfile])
-
-            else:
-                # Default conversion (e.g., to 1080p, 720p, etc.)
-                cmd = [FFMPEG_NAME, '-hide_banner', '-ignore_unknown', '-y', '-i', self.path, '-map', '0:v:0',
-                       '-vf', f'scale={self._qual[self.data]}:-2', '-map', '0:a:?', '-map', '0:s:?', '-c:a', 'copy', '-c:s', 'copy', self.outfile]
-
+            cmd = [FFMPEG_NAME, '-hide_banner', '-ignore_unknown', '-y', '-i', self.path, '-map', '0:v:0',
+                   '-vf', f'scale={self._qual[self.data]}:-2', '-map', '0:a:?', '-map', '0:s:?', '-c:a', 'copy', '-c:s', 'copy', self.outfile]
             await self._run_cmd(cmd)
             if self.is_cancel:
                 return
@@ -601,14 +548,8 @@ class VidEcxecutor(FFProgress):
                 await f.write('\n'.join(list_files))
 
             self.outfile = ospath.join(self.path, self.name)
-            
-            # Updated command to re-encode for compatibility
-            cmd = [
-                FFMPEG_NAME, '-ignore_unknown', '-f', 'concat', '-safe', '0', '-i', input_file,
-                '-c:v', 'libx264', '-c:a', 'aac', '-map', '0', '-y', self.outfile
-            ]
-            
-            await self._run_cmd(cmd, 'no_progress')
+            cmd = [FFMPEG_NAME, '-ignore_unknown', '-f', 'concat', '-safe', '0', '-i', input_file, '-map', '0', '-c', 'copy', self.outfile, '-y']
+            await self._run_cmd(cmd, 'direct')
             await clean_target(input_file)
             if self.is_cancel:
                 return
@@ -708,7 +649,6 @@ class VidEcxecutor(FFProgress):
             await self._run_cmd(cmd, status)
             if self.is_cancel:
                 return
-        await gather(clean_target(wmpath), clean_target(subfile))
 
         return await self._final_path()
 
