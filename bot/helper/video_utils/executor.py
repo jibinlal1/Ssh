@@ -275,61 +275,7 @@ class VidEcxecutor(FFProgress):
         await gather(*[clean_target(file) for file in task_files])
         return await self._final_path(self._up_path)
 
-    async def _vid_convert(self):
-    file_list = await self._get_files()
-    multi = len(file_list) > 1
-    if not file_list:
-        return self._up_path
-
-    if self._metadata:
-        base_dir = self.listener.dir
-        await makedirs(base_dir, exist_ok=True)
-        streams = self._metadata[0]
-    else:
-        main_video = file_list[0]
-        base_dir, (streams, _), self.size = await gather(
-            self._name_base_dir(main_video, 'Convert', len(file_list) > 1),
-            get_metavideo(main_video),
-            get_path_size(main_video)
-        )
-    self._start_handler(streams)
-    await gather(self._send_status(), self.event.wait())
-    await self._queue()
-    if self.is_cancel:
-        return
-    if not self.data:
-        return self._up_path
-
-    self.outfile = self._up_path
-
-    resolution = self.data.get('resolution', '720p')
-    scale_width = self._qual.get(resolution, '1280')
-
-    for file in file_list:
-        self.path = file
-        if not self._metadata:
-            _, self.size = await gather(self._name_base_dir(self.path, f'Convert-{self.data}', multi), get_path_size(self.path))
-        self.outfile = ospath.join(base_dir, self.name)
-        self._files.append(self.path)
-        cmd = [
-            FFMPEG_NAME,
-            '-hide_banner',
-            '-ignore_unknown',
-            '-y',
-            '-i', self.path,
-            '-map', '0:v:0',
-            '-vf', f'scale={scale_width}:-2',
-            '-map', '0:a:?',
-            '-map', '0:s:?',
-            '-c:a', 'copy',
-            '-c:s', 'copy',
-            self.outfile
-        ]
-        await self._run_cmd(cmd)
-        if self.is_cancel:
-            return
-
-    return await self._final_path()
+    
 
 
     async def _rm_stream(self):
@@ -353,6 +299,59 @@ class VidEcxecutor(FFProgress):
             return
         if not self.data:
             return self._up_path
+
+        async def _vid_convert(self):
+    file_list = await self._get_files()
+    multi = len(file_list) > 1
+    if not file_list:
+        return self._up_path
+
+    if self._metadata:
+        base_dir = self.listener.dir
+        await makedirs(base_dir, exist_ok=True)
+        streams = self._metadata[0]
+    else:
+        main_video = file_list[0]
+        base_dir, (streams, _), self.size = await gather(
+            self._name_base_dir(main_video, 'Convert', multi),
+            get_metavideo(main_video),
+            get_path_size(main_video)
+        )
+    self._start_handler(streams)
+    await gather(self._send_status(), self.event.wait())
+    await self._queue()
+    if self.is_cancel:
+        return
+    if not self.data:
+        return self._up_path
+
+    self.outfile = self._up_path
+
+    resolution = self.data.get('resolution', '720p')
+    scale_width = self._qual.get(resolution, '1280')
+
+    for file in file_list:
+        self.path = file
+        if not self._metadata:
+            _, self.size = await gather(self._name_base_dir(self.path, f'Convert-{self.data}', multi), get_path_size(self.path))
+        self.outfile = ospath.join(base_dir, self.name)
+        self._files.append(self.path)
+        cmd = [
+            FFMPEG_NAME, '-hide_banner', '-ignore_unknown', '-y',
+            '-i', self.path,
+            '-map', '0:v:0',
+            '-vf', f'scale={scale_width}:-2',
+            '-map', '0:a:?', '-map', '0:s:?',
+            '-c:a', 'copy',
+            '-c:s', 'copy',
+            self.outfile
+        ]
+        await self._run_cmd(cmd)
+        if self.is_cancel:
+            return
+
+    return await self._final_path()
+
 
         self.outfile = self._up_path
         for file in file_list:
