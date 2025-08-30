@@ -310,10 +310,23 @@ class VidEcxecutor(FFProgress):
             cmd = [
                 FFMPEG_NAME, '-hide_banner', '-ignore_unknown', '-y', '-i', self.path,
                 '-vf', f'scale={resolution_val}:-2',
-                '-c:v', self.data['codec'], '-crf', self.data['crf'], '-preset', self.data['preset'],
-                '-c:a', self.data['audio_codec'], '-ac', self.data['audio_channels'], '-b:a', self.data['bitrate'],
-                '-map', '0:v:0', '-map', '0:a:?', '-map', '0:s:?', self.outfile
+                '-crf', self.data['crf'], '-preset', self.data['preset'],
+                '-map', '0:v:0', '-map', '0:a:?', '-map', '0:s:?',
             ]
+            
+            # Add video codec and profile
+            if self.data['codec'] == 'libx265':
+                cmd.extend(['-c:v', 'libx265', '-pix_fmt', 'yuv420p10le', '-profile:v', 'main10'])
+            elif self.data['codec'] == 'libx264':
+                cmd.extend(['-c:v', 'libx264'])
+            
+            # Add audio settings
+            if self.data['audio_codec'] != 'copy':
+                cmd.extend(['-c:a', self.data['audio_codec'], '-ac', self.data['audio_channels'], '-b:a', self.data['bitrate']])
+            else:
+                cmd.extend(['-c:a', 'copy'])
+            
+            cmd.append(self.outfile)
             
             await self._run_cmd(cmd)
             if self.is_cancel:
