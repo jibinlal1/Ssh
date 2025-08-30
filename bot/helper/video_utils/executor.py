@@ -307,26 +307,29 @@ class VidEcxecutor(FFProgress):
             
             # Dynamically build the FFmpeg command
             resolution_val = self._qual[self.data['resolution']]
-            cmd = [
-                FFMPEG_NAME, '-hide_banner', '-ignore_unknown', '-y', '-i', self.path,
-                '-vf', f'scale={resolution_val}:-2',
-                '-crf', self.data['crf'], '-preset', self.data['preset'],
-                '-map', '0:v:0', '-map', '0:a:?', '-map', '0:s:?',
-            ]
             
-            # Add video codec and profile
+            cmd = [FFMPEG_NAME, '-hide_banner', '-ignore_unknown', '-y', '-i', self.path]
+            
+            # Add video filters and encoding options
+            cmd.extend(['-vf', f'scale={resolution_val}:-2'])
+            cmd.extend(['-c:v', self.data['codec']])
+            
+            if self.data['codec'] in ['libx264', 'libx265']:
+                cmd.extend(['-preset', self.data['preset']])
+                cmd.extend(['-crf', self.data['crf']])
+
             if self.data['codec'] == 'libx265':
-                cmd.extend(['-c:v', 'libx265', '-pix_fmt', 'yuv420p10le', '-profile:v', 'main10'])
-            elif self.data['codec'] == 'libx264':
-                cmd.extend(['-c:v', 'libx264'])
+                cmd.extend(['-pix_fmt', 'yuv420p', '-profile:v', 'main'])
+                
+            # Add audio and stream mapping options
+            cmd.extend(['-c:a', self.data['audio_codec']])
             
-            # Add audio settings
+            # Use -ac for audio channels
             if self.data['audio_codec'] != 'copy':
-                cmd.extend(['-c:a', self.data['audio_codec'], '-ac', self.data['audio_channels'], '-b:a', self.data['bitrate']])
-            else:
-                cmd.extend(['-c:a', 'copy'])
-            
-            cmd.append(self.outfile)
+                cmd.extend(['-ac', self.data['audio_channels']])
+                cmd.extend(['-b:a', self.data['bitrate']])
+
+            cmd.extend(['-map', '0:v:0', '-map', '0:a:?', '-map', '0:s:?', self.outfile])
             
             await self._run_cmd(cmd)
             if self.is_cancel:
