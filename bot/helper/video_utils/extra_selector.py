@@ -26,6 +26,7 @@ class ExtraSelect:
         self.extension: list[str] = [None, None, 'mkv']
         self.status = ''
         self.swap_selection = {'selected_stream': None, 'remaps': {}}
+        self.streams_data = None  # New attribute to store stream data
 
     @new_thread
     async def _event_handler(self):
@@ -45,6 +46,10 @@ class ExtraSelect:
             await editMessage(text, self._reply, buttons)
             
     async def get_buttons(self, *args):
+        # Store the stream data before starting the selection process
+        if self.executor.mode == 'convert' and not self.streams_data:
+            self.streams_data = args[0]
+        
         future = self._event_handler()
         if extra_mode := getattr(self, f'{self.executor.mode}_select', None):
             await extra_mode(*args)
@@ -368,7 +373,7 @@ async def cb_extra(_, query: CallbackQuery, obj: ExtraSelect):
         case 'convert_back':
             await query.answer()
             obj.executor.data = None
-            await obj.convert_select(obj.executor.data)
+            await obj.convert_select(obj.streams_data)
         case 'swap_stream_select':
             await query.answer()
             stream_index = int(data[2])
