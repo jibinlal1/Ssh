@@ -311,15 +311,20 @@ class VidEcxecutor(FFProgress):
             cmd.extend(['-vf', f'scale={resolution_val}:-2'])
             
             codec = self.data['codec']
+            pix_fmt = self.data.get('pix_fmt', 'yuv420p')
             cmd.extend(['-c:v', codec])
 
             if codec in ['libx264', 'libx265']:
                 cmd.extend(['-preset', self.data['preset']])
                 cmd.extend(['-crf', self.data['crf']])
                 if codec == 'libx265':
-                    cmd.extend(['-pix_fmt', 'yuv420p', '-profile:v', 'main'])
+                    cmd.extend(['-pix_fmt', pix_fmt])
+                    profile = 'main10' if pix_fmt == 'yuv420p10le' else 'main'
+                    cmd.extend(['-profile:v', profile])
             elif codec in ['libvpx-vp9', 'libaom-av1']:
                 cmd.extend(['-crf', self.data['crf']])
+                if pix_fmt == 'yuv420p10le':
+                    cmd.extend(['-pix_fmt', pix_fmt])
                 if codec == 'libaom-av1':
                     cmd.extend(['-cpu-used', '4'])
 
