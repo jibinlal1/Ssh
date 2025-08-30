@@ -238,13 +238,8 @@ class VidEcxecutor(FFProgress):
             self.path = file
 
             # FIX: Get metadata for the CURRENT file inside the loop
-            if self._metadata:
-                streams = self._metadata[0]
-            else:
-                base_dir, (streams, _), self.size = await gather(self._name_base_dir(self.path, 'Extract', multi),
-                                                                 get_metavideo(self.path),
-                                                                 get_path_size(self.path))
-
+            streams, _ = await get_metavideo(self.path)
+            
             for stream_index in self.data['sdata']:
                 try:
                     # Now 'streams' is correct for the current file
@@ -273,6 +268,7 @@ class VidEcxecutor(FFProgress):
 
     async def _vid_convert(self):
         file_list = await self._get_files()
+        multi = len(file_list) > 1
         if not file_list:
             return self._up_path
 
@@ -703,6 +699,9 @@ class VidEcxecutor(FFProgress):
             self.path = file
             if not self._metadata:
                 _, self.size = await gather(self._name_base_dir(self.path, 'Swap', multi), get_path_size(self.path))
+            
+            # FIX: Get metadata for the current file inside the loop
+            streams, _ = await get_metavideo(self.path)
 
             self.outfile = ospath.join(base_dir, self.name)
             self._files.append(self.path)
